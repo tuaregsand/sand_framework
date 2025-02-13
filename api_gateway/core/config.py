@@ -3,12 +3,13 @@ from pydantic_settings import BaseSettings
 import os
 from functools import lru_cache
 from urllib.parse import urlparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
-    """Application settings.
+    """Application settings."""
     
-    All settings can be overridden by environment variables with the same name.
-    """
     # API Settings
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
@@ -94,6 +95,17 @@ class Settings(BaseSettings):
     class Config:
         case_sensitive = True
         env_file = None  # Don't try to read from .env file in production
+
+    def __init__(self, **kwargs):
+        # Log all environment variables for debugging
+        logger.info("Environment variables available:")
+        for key, value in os.environ.items():
+            # Mask sensitive values
+            if any(sensitive in key.lower() for sensitive in ['secret', 'password', 'key']):
+                logger.info(f"{key}: ***masked***")
+            else:
+                logger.info(f"{key}: {value}")
+        super().__init__(**kwargs)
 
     def get_database_url(self) -> str:
         """Get database URL."""
