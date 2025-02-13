@@ -1,0 +1,1006 @@
+Understood! I will now perform extensive research and refine every aspect of this project to a highly detailed level. Here’s what I will deliver:
+
+1. **Complete Codebase** – A fully structured Next.js frontend, backend APIs (FastAPI or Node.js), analysis workers (Python), monitoring services (real-time Solana tracking), and CI/CD pipelines.
+2. **Detailed System Architecture** – Full breakdown of each microservice, API contracts, request/response formats, and data flow diagrams.
+3. **Infinite Canvas Implementation** – Optimized for performance (WebGL, spatial partitioning, real-time updates, multi-user collaboration, etc.).
+4. **Advanced Smart Contract Analysis** – Security, gas optimization, code quality enforcement, automated fixes, and heuristic/ML-based detection.
+5. **Scalability & Deployment Strategy** – Kubernetes for auto-scaling, failover mechanisms, logging, security hardening, and API rate limiting.
+6. **Comprehensive Testing Strategy** – Unit tests, integration tests, load testing for 1000+ contracts, and CI/CD automation.
+7. **A-Z Deployment Guide** – Step-by-step instructions to deploy everything on **Railway, Vercel**, and other cloud services, ensuring seamless integration.
+
+I will now conduct deep research to refine tool choices, frameworks, deployment strategies, and code implementation. Once complete, I will deliver an extremely detailed report with everything included.
+
+# Smart Contract Analysis Platform – Implementation Plan
+
+This implementation plan outlines a **production-grade design** for a Smart Contract Analysis Platform, covering all aspects from architecture to deployment. Each section below corresponds to the specified requirements, with detailed explanations, best practices, and recommendations (including code snippets and references) for building the platform.
+
+## 1. Full Codebase Implementation
+
+The platform will be composed of multiple components, each handled by a separate part of the codebase for clarity and separation of concerns. We propose a **microservices approach** where each major function (frontend UI, backend API, analysis engine, monitoring, etc.) is its own service. This allows independent development, deployment, and scaling of each component ([SOA vs. Microservice: Learn the Difference | Atlassian](https://www.atlassian.com/microservices/microservices-architecture/soa-vs-microservices#:~:text=Each%20service%20is%20independent%20and,and%20data%20to%20function)) ([Message Queues: A Key Concept in Microservices Architecture](https://medium.com/cloud-native-daily/message-queues-a-key-concept-in-microservices-architecture-bba8547705a8#:~:text=Message%20Queues%3A%20A%20Key%20Concept,to%20a%20queue%20and)). Below is a breakdown of each component and how to implement it:
+
+### Frontend – Next.js Infinite Canvas UI
+
+- **Framework & Features**: Use **Next.js** (React) for the frontend to leverage its performance and ecosystem. The core feature is an **interactive infinite canvas** where users can visualize smart contract architectures, analysis results, and comments. Utilizing an infinite canvas allows users to pan/zoom indefinitely, akin to design tools like Figma or whiteboards. We can integrate an existing library or SDK such as **tldraw** (an open-source React infinite canvas library) to save development time ([tldraw/tldraw: whiteboard SDK / infinite canvas SDK - GitHub](https://github.com/tldraw/tldraw#:~:text=tldraw%2Ftldraw%3A%20whiteboard%20SDK%20%2F%20infinite,com)). tldraw provides a React component for an infinite canvas and supports shapes, text, and more, which can be extended for our needs. 
+
+- **Real-Time Collaboration**: The frontend must support multi-user collaboration with real-time updates. We will implement this via **WebSockets** or WebRTC for low-latency bi-directional communication ([Real-Time Collaborative Web Apps - nextjs - Reddit](https://www.reddit.com/r/nextjs/comments/1eapcdq/realtime_collaborative_web_apps/#:~:text=Stick%20with%20websockets%20or%20webrtc,too%20much%20latency%20and%20complexity)). For example, using **Socket.io** (if using Node backend) or Next.js built-in API routes to handle WebSocket connections. When one user makes a change (e.g., adds a comment or moves an object on the canvas), the change is emitted to the server and broadcasted to other connected clients in the same project/room. 
+
+- **State Management**: Utilize a CRDT-based approach for conflict-free collaboration. **Yjs** is a suitable choice – it’s a CRDT library that can sync state across clients via WebSocket or WebRTC. Yjs allows real-time shared data structures so multiple users can edit the canvas simultaneously without merge conflicts ([Enabling Collaborative Editing - Slate](https://docs.slatejs.org/walkthroughs/07-enabling-collaborative-editing#:~:text=Enabling%20Collaborative%20Editing%20,Because)). For example, each canvas element (node, annotation, etc.) can be a shared object in a Yjs document. The **y-websocket** provider can be used on the server to coordinate updates, and on the client, we simply bind the canvas state to Yjs.
+
+- **Infinite Canvas Performance**: Rendering an infinite canvas with potentially hundreds of elements requires careful optimization:
+  - Use **WebGL or Canvas2D** for rendering to leverage GPU acceleration for many objects. Frameworks like Three.js or PixiJS can handle thousands of objects smoothly by offloading to GPU.
+  - Implement **spatial partitioning** (e.g., quad-trees or grids) to only render objects that are in (or near) the viewport. This prevents off-screen elements from taxing performance ([Scene graphs and spatial partitioning structures: What do you really ...](https://gamedev.stackexchange.com/questions/41872/scene-graphs-and-spatial-partitioning-structures-what-do-you-really-need#:~:text=Scene%20graphs%20and%20spatial%20partitioning,that%20you%20can%20gain)). By dividing the canvas into regions, we can quickly query which objects need to be drawn as the user pans around.
+  - Use **virtualized rendering** techniques similar to windowing in large lists. The idea is to maintain a pool of on-screen DOM/canvas elements corresponding only to visible items. This has been shown to handle extremely large numbers of objects. For instance, one approach achieved good performance with *1,000,000* canvas elements by heavily using virtualization (only drawing those in view) ([How to improve Canvas rendering performance? - Stack Overflow](https://stackoverflow.com/questions/9997891/how-to-improve-canvas-rendering-performance#:~:text=This%20is%20a%20Canvas%20based,1%2C000%2C000%20UIElements%20on%20a%20Canvas)).
+  - Throttle or debounce expensive operations like resizing or extreme zooming. Use `requestAnimationFrame` for rendering loops and avoid forced synchronous layouts. 
+
+- **UI/UX**: The Next.js app can use dynamic routing for different projects (e.g., `/project/[id]` route loads the canvas for a given contract project). Integrate a component library or custom components for a toolbar, modals, etc. The canvas should allow adding *nodes* representing smart contracts or functions, connecting them (for calls or inheritance), and overlaying analysis info (like highlighting vulnerable components). 
+
+- **Code Snippet – Canvas Component**: Below is a simplified example of how a React component might set up a canvas with tldraw and connect to a collaboration server:
+  ```jsx
+  import { Tldraw, useFileSystem } from '@tldraw/tldraw'
+  import { WebsocketProvider } from 'y-websocket'
+  import * as Y from 'yjs'
+
+  function CanvasEditor({ projectId }) {
+    // Set up Yjs document and provider for collaboration
+    const ydoc = new Y.Doc()
+    const wsProvider = new WebsocketProvider('wss://collab.server.com', projectId, ydoc)
+
+    // (Optional) Sync presence (cursor positions) using awareness API of Yjs
+
+    // Use tldraw's component bound to our Yjs document
+    return <Tldraw persistence={ydoc} autoFocus={true} />
+  }
+  ```
+  In the above snippet, `WebsocketProvider` connects to a Yjs collaboration server for the given `projectId`. The `Tldraw` component would be configured to use the Yjs document as its persistence layer so that any changes are synced among clients. (In a real implementation, more setup is needed to map Yjs updates to tldraw's state, and we would handle authentication and room joining logic.)
+
+### Backend API – FastAPI/Node Service
+
+- **Choice of Framework**: The backend API can be implemented in **FastAPI (Python)** or **Node.js/Express**. FastAPI offers fast development and easy integration with the Python analysis worker, while Node might integrate nicely with the Next.js app if we want a unified language. For a Python-centric stack (since analysis is Python), using FastAPI is advantageous for code sharing and type validation. FastAPI also automatically generates interactive docs via Swagger UI, fulfilling the API documentation requirement ([OpenAPI Specification - Version 3.1.0 - Swagger](https://swagger.io/specification/#:~:text=OpenAPI%20Specification%20,understand%20service%20capabilities%20without)).
+
+- **REST API Design**: Design clear RESTful endpoints for all functionalities:
+  - **Authentication**: Endpoints for user login, logout, and possibly OAuth callbacks (if integrating GitHub/Slack OAuth). For example, `POST /api/login` (if not using external OAuth) or implement OAuth2 flows where the frontend gets a GitHub OAuth URL, etc.
+  - **Project Management**: `GET /api/projects` to list smart contract projects the user is analyzing, `POST /api/projects` to create a new project (with a contract code or a GitHub repo link).
+  - **Analysis Requests**: `POST /api/analyze` to submit a smart contract (source code or artifact) for analysis. This will trigger the analysis worker (more on this below).
+  - **Analysis Results**: `GET /api/projects/{id}/results` to fetch latest analysis findings, vulnerabilities, gas reports, etc., for display on the UI.
+  - **Collaboration**: `POST /api/projects/{id}/comments` or similar to add a comment on the analysis (the UI canvas can call this when a user posts a comment). `GET /api/projects/{id}/comments` to fetch existing comments.
+  - **Integration Webhooks**: Endpoints to receive webhooks: e.g., `POST /api/github/webhook` to receive GitHub events (if a repo is linked for continuous analysis on new commits or PRs), or `POST /api/slack/command` to handle Slack slash commands from users (if any).
+  - **Monitoring Data**: `GET /api/projects/{id}/monitor` to fetch real-time on-chain data (or possibly this could be handled via WebSockets pushing from the monitoring service directly to frontend).
+
+- **GitHub Integration**: If users link a GitHub repository:
+  - Support OAuth login via GitHub to allow the platform to access their repos (the OAuth scopes should include repo read access).
+  - After linking, set up a **webhook on the repository** (via GitHub API) to send push or pull request events to our backend (to the `/api/github/webhook` endpoint). This allows automatic analysis on new code commits or PRs.
+  - The backend on receiving a webhook can enqueue an analysis job for the updated code. Also, provide an endpoint to manually fetch code from GitHub (in case the user triggers analysis manually).
+
+- **Slack Integration**: Provide a way to send notifications or accept commands:
+  - For notifications: Use Slack Incoming Webhooks or Slack Bot API to post messages to user channels when, say, an analysis finishes or a critical vulnerability is found. The backend can format a message (with contract name, vulnerability summary, etc.).
+  - For commands: If we build a Slack app, configure a slash command like `/scan <repo>` that hits our API. The API should verify the Slack token and trigger analysis, responding via the Slack response URL.
+  - These require storing Slack tokens or signing secrets in our backend configuration (ensure these are encrypted and stored securely).
+
+- **Events & Real-time**: The backend can also facilitate real-time updates via WebSockets or server-sent events for certain features:
+  - Use **WebSocket endpoints** for pushing analysis progress or results to the UI. For example, when an analysis job finishes, the worker can notify the API (via DB or direct callback) and the API server (if it's stateful) can emit a WebSocket event to the client (through a WS connection the client has open).
+  - If using FastAPI, we can use libraries like **FastAPI WebSocket** or **Starlette** directly for WebSocket endpoints (e.g., `/api/ws/projects/{id}` where clients join to listen for updates).
+  - Alternatively, use a dedicated real-time pubsub (like Redis Pub/Sub or a service like Pusher) if not keeping persistent connections in the API service.
+
+- **Authentication & Authorization**: Implement JWT-based auth for the API. Upon login (via username/password or OAuth token exchange), the API returns a JWT to the client. The client stores it (in memory or secure cookie) and sends it on each request (Authorization header). Use refresh tokens if needed for long sessions. Protect routes so only authorized users can access their data. For multi-user collaboration, enforce that only team members (with permission) can access a given project’s data. Possibly implement role-based access (e.g., admin, viewer, editor roles on a project for team collaboration).
+
+- **Example Code – FastAPI Endpoint**: Below is an illustrative snippet of a FastAPI route for submitting an analysis job:
+  ```python
+  from fastapi import FastAPI, Depends, HTTPException
+  from pydantic import BaseModel
+  from auth import get_current_user  # dependency that checks JWT
+  
+  app = FastAPI()
+  
+  class AnalyzeRequest(BaseModel):
+      project_id: int
+      source_code: str
+  
+  @app.post("/api/analyze")
+  async def analyze_contract(req: AnalyzeRequest, user=Depends(get_current_user)):
+      # Check user permission for the project
+      if not user.can_access(req.project_id):
+          raise HTTPException(status_code=403, detail="Not allowed")
+      # Enqueue the analysis job (to message queue or database)
+      job_id = enqueue_analysis_job(req.project_id, req.source_code)
+      return {"status": "queued", "job_id": job_id}
+  ```
+  In this snippet, `enqueue_analysis_job` would place a message into a queue (like RabbitMQ or Redis) that the Analysis Worker will consume. The endpoint ensures the user is authenticated (`get_current_user` decodes JWT) and authorized to analyze the given project. A similar pattern would be used for other endpoints (with appropriate models and checks).
+
+- **API Documentation**: Using **OpenAPI/Swagger** is straightforward with FastAPI since it automatically generates an OpenAPI spec. We will annotate our endpoints with request/response models (using Pydantic/BaseModel) as shown above, and include documentation strings. The OpenAPI spec can be exposed at `/docs` or `/openapi.json` for integration. This provides a clear contract for how the API behaves, including authentication requirements and data formats ([OpenAPI Specification - Version 3.1.0 - Swagger](https://swagger.io/specification/#:~:text=OpenAPI%20Specification%20,understand%20service%20capabilities%20without)).
+
+- **GitHub & Slack Libraries**: Leverage official or well-maintained SDKs:
+  - For GitHub: use PyGithub (Python) or octokit (Node) to interact with GitHub APIs for listing repos, setting webhooks, fetching file contents, etc.
+  - For Slack: use slack-sdk (Python) or @slack/web-api (Node) for sending messages or responding to commands.
+
+### Analysis Worker – Python Smart Contract Analyzer
+
+- **Role**: The Analysis Worker service is responsible for performing in-depth analysis of smart contract code. It will run asynchronously, taking tasks (contracts to analyze) from a queue and producing results that are stored and returned to the user.
+
+- **Technology**: Implement this in **Python** for rich analysis libraries. This service does not expose an HTTP API to external clients; instead, it listens to a message queue (or task queue). We can use **Celery** with Redis/RabbitMQ, or a simpler approach with Python RQ (Redis Queue), to handle task distribution. The API enqueues tasks, and one or many worker processes consume them.
+
+- **Security Analysis Module**: Use static analysis to detect vulnerabilities:
+  - **Solidity AST Parsing**: Parse the smart contract source code to analyze its structure. We can use the Solidity compiler (`solc`) in JSON AST output mode, or libraries like **slither** (which internally parses Solidity code) for this purpose.
+  - **Slither integration**: *Slither* is a powerful static analysis framework by Trail of Bits, written in Python ([How to use Slither for auditing smart contracts - HackenProof](https://hackenproof.com/blog/for-hackers/how-to-use-slither-for-auditing-smart-contracts#:~:text=Slither%20is%20a%20Solidity%20static,tools%20for%20smart%20contracts%20auditing)). We can integrate Slither to automatically detect common vulnerabilities (reentrancy, unhandled exceptions, tx.origin usage, etc.). Slither comes with a suite of detectors – using its Python API, we can programmatically run these analyses and capture the results. For example, 
+    ```python
+    from slither import Slither
+    sl = Slither("contracts/MyContract.sol")
+    results = []
+    for detector in sl.detectors:
+        detector.find(sl)  # run each detector
+        for result in detector.output:
+            results.append({"vuln": detector.detector_name, "detail": result})
+    ```
+    This pseudo-code illustrates iterating through Slither’s detectors to accumulate findings. (In practice, Slither’s API provides simpler ways to run all detectors at once.)
+  - **Custom Rules**: We can add custom heuristic checks. For instance, look for any `for` loops without bounded iteration (which could be DoS vectors), or check for usage of deprecated functions. Because Slither provides an API to navigate the AST and CFG, we can script custom analyses as needed ([Slither – a Solidity static analysis framework | Trail of Bits Blog](https://blog.trailofbits.com/2018/10/19/slither-a-solidity-static-analysis-framework/#:~:text=Blog%20blog,about%20the%20code%20we%27re)) (Slither’s API allows answering unique questions about the code by traversing functions, state variables, etc.).
+  - **Machine Learning models**: Optionally, incorporate ML for anomaly detection – e.g., train a model on known vulnerable vs. safe contracts to flag unusual patterns. This is an advanced step; initially focus on static rules and heuristics, and later integrate ML for things like detecting copy-paste bugs or subtle flaws that rules might miss.
+
+- **Gas Optimization Module**: Analyze the contract for gas inefficiencies:
+  - Static analysis for patterns that waste gas: e.g., state variables that could be packed into fewer storage slots, use of expensive operations in loops (like computing a hash in each iteration instead of caching it), or not using `unchecked` for arithmetic in tight loops (Solidity 0.8+ has automatic overflow checks which cost gas).
+  - Tools like Slither also detect some optimizations. In fact, *Slither* can identify code optimizations (e.g., unused return values, costly patterns) as part of its output ([Slither - Solidity Tools - Alchemy](https://www.alchemy.com/dapps/slither#:~:text=Slither%20,summaries%20to%20further%20developer%20comprehension)).
+  - We can also integrate with the Solidity compiler's optimization reports. For example, compile the contract with `solc --optimize --optimize-runs 200` and see if any warnings are emitted about optimization (though the compiler mostly handles it automatically).
+  - **Runtime gas benchmarking**: To provide concrete data, the worker can run the contract's functions in a instrumented EVM environment to measure gas usage. For instance:
+    - Use a tool like **Ganache** or Hardhat’s in-process chain to deploy the contract and execute representative transactions (could be predefined or extracted from historical data if available).
+    - Use web3.py or eth-brownie to measure gas for each function call. This requires the contract to have either actual test cases or we create transactions with dummy inputs.
+    - The result would be a report of gas costs per function. This can highlight if any function is extremely expensive.
+  - Suggest optimizations: e.g., "Function X uses X gas which is high; consider using memory instead of storage where possible," etc. These suggestions can be templated from known best practices.
+
+- **Automated Fixes**: Provide automated fixes or recommendations:
+  - For each vulnerability or issue found, attempt to provide a fix. Some fixes can be automated (like linting autofixes), others might be suggestions for the developer.
+  - **Linting/Formatting**: Use **Solhint** or **Prettier for Solidity** to enforce style and fix formatting issues automatically. These can catch things like missing function visibility or constant keywords and automatically insert them.
+  - **Simple Refactors**: For example, if a state variable is never modified, suggest marking it `constant` to save gas. We could even auto-modify the code to add the `constant` keyword and include that as a patch.
+  - Use AST transformation: Python libraries like `libcst` for Python or custom parsing for Solidity could allow programmatically editing the source code. However, a simpler way: use regex or text replacement for certain known patterns (risky but straightforward for simple inserts like adding safemath library usage).
+  - Possibly integrate with OpenAI Codex or similar in future for suggesting fixes, but for now, rule-based fixes.
+  - Finally, present these fixes in the results (for example, as a unified diff or a list of suggestions with code snippets).
+
+- **Execution Environment**: The worker should run in a sandboxed environment:
+  - If analyzing unknown contracts, ensure the code is not executed arbitrarily (we stick to static analysis primarily to avoid running untrusted code).
+  - Any dynamic analysis (like the gas benchmarking step) should execute bytecode on a local EVM fork, which is deterministic and not giving the contract any control (so it's safe).
+  - Enforce timeouts for analysis jobs (so a particularly large or pathological contract doesn't hang the worker indefinitely). Use multiprocessing or asyncio timeouts.
+  - Run the worker in a Docker container with resource limits (CPU/memory) to isolate it. This is especially important if scaling out on Kubernetes – each worker container can be limited to e.g. 1 CPU / 1 GB RAM, and we can scale horizontally.
+
+- **Data Handling**: After analysis, the worker will output:
+  - Security issues found (with severity, description, and ideally the source code line numbers).
+  - Gas usage report and optimization tips.
+  - Code quality issues and any autofix patches.
+  - These results are saved to the database (in tables like `analysis_results`, `vulnerabilities`, etc.) and/or sent back to the backend API (e.g., via a callback HTTP request or putting results in a results queue that the API consumes). A straightforward approach: the worker inserts results directly into the Postgres DB using an ORM or psycopg2. Alternatively, the worker could send a message to a "results" queue that the API listens to, but direct DB write is simpler if they share the DB.
+
+- **Tooling**: Apart from Slither and solc, consider using:
+  - **Mythril** (a symbolic execution tool for Ethereum) to find deeper vulnerabilities (like assertion failures, integer overflows). This could be a mode the user can opt into since it’s slower. 
+  - **Ethlint (Solhint)** for style checks.
+  - Any custom ML models would involve having them pre-trained and loaded into the worker process to analyze code text or AST patterns.
+
+### Monitoring Service – Solana Real-Time Tracking
+
+- **Purpose**: This service will monitor deployed smart contracts (on the Solana blockchain) in real-time, to track events or state changes relevant to security. For example, if a certain function is called or a certain account's balance changes, it can alert users or update the dashboard. This is particularly useful for detecting exploits or anomalies as they happen.
+
+- **Connection to Solana**: Use Solana’s **WebSocket** subscriptions for real-time updates. Solana provides an RPC interface where you can subscribe to various events:
+  - **Account Changes**: using `accountSubscribe` to listen for changes in a specific account’s data (e.g., if the contract’s state account is updated).
+  - **Program Logs**: using `logsSubscribe` to get logs emitted by transactions from a particular program (smart contract).
+  - **Program Accounts**: using `programSubscribe` to listen for any changes to accounts owned by a given program (this effectively tracks all instances of that smart contract).
+  
+  Solana’s `@solana/web3.js` library (for Node) or `solana.py` (for Python) can handle these subscriptions. Under the hood, they open a persistent WebSocket connection to a Solana RPC endpoint and register the desired subscriptions ([Subscribing to Events - Solana](https://solana.com/developers/cookbook/development/subscribing-events#:~:text=Subscribing%20to%20Events%20,use%20below%20is%20onAccountChange)). For example, with web3.js:
+  ```js
+  const solanaWeb3 = require('@solana/web3.js');
+  const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
+  const programPublicKey = new solanaWeb3.PublicKey(PROGRAM_ID);
+  connection.onProgramAccountChange(programPublicKey, (accountInfo, context) => {
+      // This callback runs whenever an account owned by PROGRAM_ID changes
+      const changedAccount = accountInfo.accountId.toBase58();
+      console.log("Program account changed:", changedAccount);
+      // We can process accountInfo.data to detect what changed
+      // For example, if it's an event counter or important state, we notify the system.
+      notifyFrontendOrStoreUpdate(projectId, changedAccount, accountInfo);
+  });
+  ```
+  In this snippet, `onProgramAccountChange` registers a callback for any account related to `PROGRAM_ID`. We would parse the `accountInfo` (which contains the new state data in binary form) according to the contract’s schema to understand what changed. The `notifyFrontendOrStoreUpdate` would likely send a WebSocket event to the UI (if a user is viewing this project) or store it in DB for audit logs.
+
+- **Filtering and Specific Events**: Depending on the use case, we might not want *all* account changes. If the program is popular, that could be a lot of data. We can filter by specific accounts of interest (like the contract’s own state, or a particular user's account). Solana’s API allows filters on subscriptions (for example, only accounts with a certain base address, etc., using `onProgramAccountChange` with filters). We can also subscribe to logs and then filter those for specific event signatures (if the smart contract logs events in a known format).
+
+- **Integration with the Platform**: The monitoring service can trigger actions:
+  - Update the frontend’s canvas visualization in real-time. For example, if an important variable (like an admin address or a counter) changes on-chain, the UI could highlight that node in a different color or display the new value.
+  - Send an alert to the user (through the backend -> Slack integration or email) if something critical happens (e.g., an unexpected large transfer from the contract).
+  - Log events to a timeline on the project dashboard (so users can review on-chain events alongside analysis).
+
+- **Implementation**: This service can be implemented in **Node.js** (to reuse the widely-used `@solana/web3.js` library). It's essentially a daemon that runs continuously:
+  - On start, for each monitored contract (project), set up the necessary subscriptions.
+  - Manage connections: If using a public RPC, be mindful of rate limits. Alternatively, use a provider like Alchemy or QuickNode which offer reliable WebSocket endpoints for Solana.
+  - Reconnect logic: maintain resilience by reconnecting if the socket drops.
+  - When events are received, process and forward them. Possibly use a small in-memory or persistent cache to compare previous state vs new state to detect the magnitude of changes.
+
+- **Data Handling**: Use the same database to record events:
+  - A table `onchain_events` with columns (project_id, type, details, timestamp, etc.) can store historical events for later analysis.
+  - If an event requires user attention (like a suspicious call), the monitoring service could create a record in a `alerts` table and also send a WebSocket message to any online clients and trigger a notification via the backend.
+
+- **Security Considerations**: Since this service deals with live data, ensure that any data coming from the blockchain is handled safely. Even though it's on-chain data, we should still avoid processing unbounded data without checks (to prevent memory overflow if something outputs huge logs, etc.). Also, avoid this service becoming a vector for denial-of-service (e.g., an attacker spamming events from a contract we monitor) – implement rate limiting or batching of events if needed.
+
+### Infrastructure – CI/CD, Containerization, Docs
+
+- **Repository Structure**: Organize the codebase (possibly a monorepo) with separate folders for `frontend/`, `backend-api/`, `analysis-worker/`, and `monitoring-service/`. Each can have its own Dockerfile and configuration. This structure helps in containerization and deployment, as well as isolating dependencies (Node modules vs Python packages).
+
+- **Containerization**: Use **Docker** to containerize each component:
+  - Write a Dockerfile for each service. For example:
+    - Frontend: Use a Node.js base image, install dependencies, build the Next.js app (for production, using `next build`), then use a lightweight server to serve it (Next can run its server or we export a static build if possible, though we need SSR for dynamic content like user sessions). Alternatively, use Vercel to handle the build (discussed later).
+    - Backend API: Use a Python 3 base image (or specifically a FastAPI image if available). Copy code, install requirements (`pip install -r requirements.txt`), expose port, and set entrypoint to start the Uvicorn server for FastAPI (e.g., `uvicorn app:app --host 0.0.0.0 --port $PORT`).
+    - Analysis Worker: Use Python image as well. Install analysis-specific dependencies (solc, Slither, etc. could be installed here, possibly requiring some OS packages like solc compiler or graphviz if Slither needs). The entrypoint can run a script that starts the worker (e.g., `celery -A worker.tasks worker --concurrency=1` or a custom Python loop that polls a queue).
+    - Monitoring: Use Node image, install needed packages (@solana/web3.js, etc.), and the entrypoint runs the script (e.g., `node monitor.js`).
+  - Ensure the images are as small as possible (use multi-stage builds to avoid shipping dev dependencies). For instance, install only production dependencies in final stage.
+  - Use environment variables for configuration (set these in Docker rather than hardcoding secrets).
+  - Test each container locally with `docker-compose` to ensure they can all communicate (compose can simulate our environment with a service for the database, message queue, etc. in one file).
+
+- **CI/CD Pipelines**: Set up continuous integration to build and test the code:
+  - Use **GitHub Actions** or similar to run tests on every push. For example, a workflow that sets up a Postgres service, runs backend tests, runs worker tests, and maybe runs a subset of integration tests.
+  - Build Docker images automatically after tests pass. The CI can push images to a container registry (like GitHub Container Registry or Docker Hub). Tag images by commit hash or version.
+  - For continuous deployment: we can integrate with our deployment platforms (Railway and Vercel):
+    - Vercel can auto-deploy the frontend from the GitHub repo (we'll configure Vercel to do so).
+    - Railway can auto-deploy from GitHub as well, or we use the CI to push to Railway via their CLI or API. Railway also supports deploy on push if set up.
+    - Optionally, use Git tags or branches for prod vs staging deployments.
+  - Ensure that secrets (API keys, etc.) are not hardcoded in the pipeline. Use CI secret storage or rely on the deploy platform’s secret management.
+
+- **Documentation**: Aside from code, maintain comprehensive documentation:
+  - **API Docs**: As mentioned, auto-generated OpenAPI docs for the REST API will be available. We can publish this (e.g., host Swagger UI at `/docs` on the backend) or have a static site with Redoc.
+  - **Developer Docs**: Write markdown docs in the repo for setting up the dev environment, understanding the architecture, etc. This helps new contributors or team members. Could use a tool like Docusaurus for a documentation site if needed.
+  - **User Guide**: Provide a guide for end-users (likely in the web app documentation section) explaining how to upload a contract, interpret results, set up GitHub/Slack integration, etc.
+
+- **Logging & Monitoring**: Instrument all services for observability:
+  - Use a structured logging library on backend and worker (like Python’s `logging` with JSON output or Node’s `winston`) so logs can be aggregated.
+  - If deploying on a platform like Railway, use their built-in logging or integrate an external service (like LogDNA, Sentry for error tracking, etc.).
+  - Monitoring the platform itself: consider adding health check endpoints (e.g., `/health` on API) and perhaps uptime monitoring. In Kubernetes, define liveness/readiness probes for each service.
+  - Performance monitoring: Potentially integrate an APM like New Relic or OpenTelemetry to trace requests through the microservices (this can help identify bottlenecks especially with many concurrent analyses).
+
+With the codebase structured in this way, each component can be developed and maintained somewhat independently, while working together through well-defined interfaces (REST API, message queues, and WebSockets). Next, we detail how these services communicate and the overall system architecture.
+
+## 2. System Architecture & Data Flow
+
+This section describes the high-level architecture of the platform, how data flows between components, and the design of key data models and API contracts.
+
+### Microservices Breakdown & Communication
+
+**Services Overview**:
+1. **Frontend** (Next.js): Provides the UI and interacts with Backend API via HTTP and real-time channels. It does not directly talk to the Analysis Worker or Monitoring service (those are abstracted behind the API and database).
+2. **Backend API** (FastAPI/Node): Central hub for client interactions and integration points. It exposes REST endpoints for the frontend and external webhooks. It handles user auth, issues API calls or tasks to other services, and aggregates results.
+3. **Analysis Worker** (Python): Processes analysis jobs asynchronously. Communicates with API mainly through the **database** and possibly a **message queue**:
+   - The API sends it tasks via a queue (e.g., RabbitMQ). The worker reads from the queue.
+   - The worker writes results to the DB, and/or sends a completion notification (could put a message in a results queue or call an API endpoint).
+4. **Monitoring Service** (Node/Python): Listens to blockchain events. When an event occurs, it may:
+   - Update the database (with new event data).
+   - Emit a WebSocket message to the frontend (if users are listening live).
+   - Possibly call an API endpoint if some server-side processing is needed.
+5. **Database** (PostgreSQL/Supabase): Shared data store for persistent data – user info, projects, contract data, analysis findings, comments, etc. All services read/write to the database as needed (with appropriate access control).
+6. **Message Queue** (RabbitMQ/Redis): Used to decouple the API and worker. The API pushes tasks to the queue; the worker consumes them. This ensures the API stays responsive (not waiting on long analysis) ([Message Queues: A Key Concept in Microservices Architecture](https://medium.com/cloud-native-daily/message-queues-a-key-concept-in-microservices-architecture-bba8547705a8#:~:text=Message%20Queues%3A%20A%20Key%20Concept,to%20a%20queue%20and)). The queue also enables **scaling** (multiple worker instances can pull from the same queue).
+
+**Data Flow for Key Scenarios**:
+- *User initiates contract analysis*: 
+  1. User uploads or selects a contract in the frontend and clicks "Analyze".
+  2. Frontend calls `POST /api/analyze` with contract details.
+  3. Backend API authenticates the user and enqueues an analysis job (e.g., creates a message in RabbitMQ containing the contract ID or code).
+  4. The Analysis Worker (listening on the queue) receives the job, performs analysis.
+  5. The Worker stores results in the database (e.g., populates a `analysis_results` table and related tables for vulnerabilities).
+  6. The worker could also send a notification: e.g., publish a message to a `analysis_done` channel (Redis pubsub) or directly notify via a callback. The API, if subscribed or polling, then knows the job is done.
+  7. The Backend (via WebSocket) notifies the frontend that results are ready (or the frontend polls the results endpoint periodically). The user sees the results update on their dashboard/canvas.
+
+- *GitHub webhook triggers analysis*:
+  1. A commit is pushed to GitHub; GitHub sends a webhook to our `POST /api/github/webhook`.
+  2. Backend validates the signature, identifies which project/repo this corresponds to, and enqueues an analysis job (similar to manual trigger).
+  3. The rest of the flow is same as above (worker analyzes, results stored).
+  4. Additionally, the backend might post back a summary to GitHub (e.g., as a PR comment or status check) using GitHub API, and/or notify Slack if configured.
+
+- *Solana monitoring event*:
+  1. The Monitoring service sees an on-chain event (say, a significant state change).
+  2. It looks up which project this event is related to (mapping of on-chain program or account to project ID).
+  3. It inserts a new record in `onchain_events` table with details.
+  4. It emits via WebSocket to any connected clients viewing that project (through a channel like `/ws/projects/{id}/events`).
+  5. The frontend receives the event and, for example, highlights something on the UI or appends to an event log panel.
+  6. If critical, the backend API (or monitoring service directly if it has Slack webhook info) sends an alert to Slack/email.
+
+**Inter-service Communication**:
+- Use **REST/HTTP** where request-response is needed (e.g., frontend to API, or monitoring to API for some things).
+- Use **async messaging** for heavy jobs (API -> Worker via queue) to keep services loosely coupled and scalable ([Message Queues: A Key Concept in Microservices Architecture](https://medium.com/cloud-native-daily/message-queues-a-key-concept-in-microservices-architecture-bba8547705a8#:~:text=Message%20Queues%3A%20A%20Key%20Concept,to%20a%20queue%20and)).
+- Use **WebSockets** for real-time pushes (API/Monitoring -> Frontend).
+- All services share the **database** for consistency of data. Use migrations to keep schema in sync (detailed in Database Schema section).
+- Each microservice is independent in terms of deployment, and communicates over network with others. This independence (each focusing on a specific functionality) is a key benefit of microservices ([SOA vs. Microservice: Learn the Difference | Atlassian](https://www.atlassian.com/microservices/microservices-architecture/soa-vs-microservices#:~:text=Each%20service%20is%20independent%20and,and%20data%20to%20function)).
+
+### API Contracts (OpenAPI Definitions & Auth Flows)
+
+Designing clear API contracts is crucial. We will maintain an **OpenAPI (Swagger) specification** for the backend API, detailing every endpoint, its methods, parameters, and responses. This spec serves as the single source of truth for how frontends or third-parties interact with our platform ([Mastering Your API Contract: A Guide to Establishing Clear ... - Moesif](https://www.moesif.com/blog/technical/api-development/Mastering-Your-API-Contract-A-Guide-to-Establishing-Clear-Guidelines-and-Expectations/#:~:text=Moesif%20www,enhancing%20its%20utility%20and%20usability)).
+
+**API Definition Highlights**:
+- **Authentication**: Likely a combination of JWT and OAuth:
+  - For normal API calls, we expect an `Authorization: Bearer <token>` header containing a JWT. The OpenAPI spec will note which endpoints require authentication (using `securitySchemes` with type `http` and scheme `bearer`).
+  - For OAuth flows (GitHub), we might have endpoints like `/auth/github/start` (redirects to GitHub) and `/auth/github/callback` (GitHub redirects here with a code). These endpoints might be documented for completeness, though they redirect rather than return JSON.
+- **Error Handling**: Define a standard error response schema (with fields like `message`, `code`) and document that under components->schemas. Every endpoint spec can refer to this for 4xx/5xx responses.
+
+**Key Endpoints** (and request/response shapes):
+- `POST /api/projects`: **Create a project.** Request body might include `name`, optional `github_repo` URL. Response: `201 Created` with project info JSON `{id, name, ...}`.
+- `GET /api/projects/{id}`: **Get project details.** Returns project info including linked repo, etc.
+- `POST /api/analyze`: **Trigger analysis.** As described earlier, request includes either contract source code directly or a reference (like which commit to analyze). Response returns a job ID or status.
+- `GET /api/projects/{id}/analysis/{analysis_id}`: **Get analysis result.** Returns the results of a specific analysis run (or the latest one if we design it that way). The JSON could include sections for `vulnerabilities: [...]`, `gas_report: {...}`, `suggestions: [...]`. If analysis is still running, could return a status `"pending"` or `"in_progress"`.
+- `GET /api/projects/{id}/vulnerabilities`: Alternatively, endpoints to directly list certain data (with filtering, pagination if needed).
+- `POST /api/projects/{id}/comments`: **Add a comment.** Body: `{ text: "...", position: {...} }` where position might link to a specific part of the canvas (like a node ID or coordinates). Response: comment object with an ID and timestamp.
+- `GET /api/projects/{id}/comments`: List all comments for the project (for loading when someone opens the canvas).
+- `POST /api/github/webhook`: **GitHub Webhook receiver.** This will likely not require auth (GitHub posts to it), but we verify via a secret token. It expects a GitHub event JSON. No response content needed besides 200 OK.
+- `POST /api/slack/command`: **Slack Slash Command.** Similar structure, Slack will send form-encoded data. We parse, verify token, and respond (Slack expects a response in a few seconds, possibly via an HTTP 200 with a message). Alternatively, for interactive components, Slack could call another endpoint.
+- Possibly `GET /api/monitor/status`: to see if the monitoring service is active or latest events (though the frontend can get that from the events endpoint or DB).
+
+**Swagger/OpenAPI Usage**:
+- Using FastAPI, much of this spec is generated. We'll add descriptive summaries and examples for each endpoint in code docstrings.
+- Serve the Swagger UI at a route (like `/docs`). This helps developers to try out endpoints quickly and verify the contract. It's also useful for integration with other tools (you can import an OpenAPI spec into Postman, for example).
+- Keep the spec in version control (FastAPI allows exporting the schema to JSON). This acts as an API contract that front-end devs and back-end devs agree on. If changes are needed, update the spec (possibly using a contract-first approach to design before implementing).
+
+**Authentication Flow**:
+- If using JWT: The user logs in via an OAuth provider or username/password:
+  - For email/password: have `POST /api/login` with credentials, verify from DB (assuming we store users), then issue JWT.
+  - For GitHub OAuth: front-end directs to GitHub, GitHub calls back to our API, our API then creates a JWT for the user (and maybe a new account if first time) and sends it to the frontend (maybe via a redirect with token or the frontend calls back to get the token).
+- JWT contains user ID and possibly roles. Use a strong signing key and short expiration (like 15 minutes) with refresh tokens to extend session.
+- All subsequent calls from front-end include the JWT. The API uses dependency or middleware to verify it on protected routes.
+- For WebSocket connections, since they are not HTTP, use an auth token query param or a ticket system. E.g., the client might send the JWT in a query string when opening the WebSocket, and the server will validate it on connection.
+- Ensure to include CORS configuration on API to allow the Vercel front-end domain to call it (especially important if domains differ).
+
+### Database Schema Design
+
+The platform uses **PostgreSQL** (or Supabase, which is a managed Postgres with extras) as the main database. We design a schema that supports the features, ensures data integrity, and can scale with indexing and partitioning if needed.
+
+**Main Entities and Tables**:
+- **Users**: stores user accounts.
+  - `users` table: columns: `id (PK)`, `name`, `email`, `password_hash` (if using our own auth), `github_oauth_id` (if OAuth), etc. Include `created_at`, `last_login` timestamps.
+  - Index on `email` (for login) or `github_oauth_id` for quick lookup.
+- **Projects**: each project corresponds to a smart contract or set of contracts the user/team is analyzing.
+  - `projects` table: `id (PK)`, `name`, `description`, `owner_id` (FK to users), `github_repo` (string, optional), `slack_webhook_url` (optional, if user sets up Slack notifications for this project), etc.
+  - Perhaps a `visibility` flag (public/private) if we allow sharing results.
+  - Index on `owner_id` to quickly fetch all projects of a user.
+- **Contracts**: if a project can have multiple contract files (like a multi-contract codebase).
+  - `contracts` table: `id`, `project_id` (FK), `filename`, `source_code` (text or stored in a separate storage if large, could use Supabase storage or an S3 bucket for large files), `bytecode` (maybe if compiled), etc.
+  - We might store the code in the DB for quick access by the worker, or the worker might get it from GitHub if linked. Storing simplifies having a snapshot.
+  - For versioning: maybe a separate table `contract_versions` with `contract_id`, `commit_id or version_tag`, `source_code`, etc., if we want to keep history of analyses (so we can compare how vulnerabilities change over versions).
+- **Analyses**: each analysis run (each time the user triggers analysis or a webhook triggers it).
+  - `analyses` table: `id`, `project_id`, `status` (queued, running, completed, error), `requested_at`, `completed_at`, `commit_hash` (if applicable, for linking to a specific code version).
+  - Possibly a `requested_by` (user id or 'github-webhook' etc.).
+  - This table helps track multiple analysis runs over time.
+  - Index on `project_id` to get latest analysis for a project easily.
+- **Vulnerabilities/Findings**: detailed results from analysis.
+  - `findings` table: `id`, `analysis_id` (FK), `type` (e.g., "Reentrancy", "Integer Overflow", "Gas Optimization", "CodeStyle"), `description` (text), `severity` (e.g., info/low/med/high for vulnerabilities).
+  - Could also have `line_number` or `location` to pinpoint in source code.
+  - Index on `analysis_id` as we'll fetch all findings for a given analysis. Also index on `type` if we want to quickly filter by type across analyses (maybe less needed).
+  - If the volume of findings is huge, consider partitioning by project or date, but likely manageable.
+- **Fixes/Suggestions**:
+  - `suggestions` table: `id`, `analysis_id`, `finding_id` (if a suggestion ties to a specific finding), `suggested_change` (text, maybe a patch diff or code snippet), `auto_applied` (boolean if we auto-fixed it in code? But we likely just suggest).
+  - Alternatively, include this in `findings` as extra columns if simpler.
+- **Comments** (collaboration):
+  - `comments` table: `id`, `project_id`, `user_id` (author), `text`, `created_at`.
+  - If comments are tied to a location on canvas or specific contract line, include fields for that (e.g., `contract_id`, `line_number` or `canvas_x, canvas_y` coordinates if it's a general canvas comment).
+  - Index on `project_id` to fetch all comments for a project quickly.
+- **On-chain Events** (from monitoring):
+  - `onchain_events` table: `id`, `project_id`, `event_type`, `details (json)`, `timestamp`.
+  - For example, `event_type` could be "account_change" or "program_log". Details might include the account or log data.
+  - Index on `project_id` and maybe on `timestamp` (for querying recent events).
+- **Alerts/Notifications**:
+  - If we want to record alerts sent to Slack/email, a table for `alerts` with `id`, `project_id`, `type`, `message`, `sent_at`, etc.
+
+**Indexing Strategies**:
+- As noted, add indexes on foreign key fields (to speed up joins and lookups by FK).
+- Composite indexes for frequent query patterns. E.g., if we often query findings by project (through analysis): maybe index on `(project_id, severity)` via a join or materialized view. However, typically we will get findings by analysis, which already filters by project via analysis table.
+- Full text search: If we allow searching contracts or comments, consider Postgres full-text search on those text fields, or use Supabase's features for full-text if needed (like pg_vector extension if searching code semantics, etc.).
+- Ensure unique constraints where necessary (e.g., a unique index on (project_id, filename) in contracts to avoid duplicate file names in one project).
+- **Supabase considerations**: If using Supabase, it can handle realtime subscription to DB changes. For instance, we could tap into Supabase's realtime to get new comments or events without explicitly using our own WebSocket for those. But since we already plan WebSockets, it's optional. Supabase also provides an Auth system; but we have our own or use external OAuth. We could use Supabase Auth to outsource user management, but then we integrate that with our own API (this is a design choice – using it could simplify some things like email verification).
+
+**Migration Plan**:
+- Use a migration tool to manage schema changes. If Python, use **Alembic** with SQLAlchemy models. If Node, use **Prisma Migrate** or **Knex** migrations.
+- Each change to the data model should be done via a migration script and tested in a staging environment.
+- If using Supabase, we could also write raw SQL migration files and apply them, or use their SQL migration tool.
+- Ensure the migrations are part of CI (i.e., new code includes new migrations, and running tests applies migrations to a fresh test database).
+- Plan initial seed data: maybe some default analysis rules or an admin user. But likely not much needed beyond having a first user.
+
+## 3. Infinite Canvas UI Design
+
+The infinite canvas UI is a standout feature for our platform, enabling intuitive visualization of smart contract projects and their analyses. This section dives deeper into how to implement a **performant, real-time, collaborative infinite canvas**.
+
+### Performance Optimizations
+
+Rendering an infinite canvas that remains smooth and responsive is challenging, so we apply multiple optimizations:
+
+- **Canvas Rendering**: Prefer **Canvas/WebGL** over DOM for drawing a large number of objects. Using `<canvas>` or WebGL can render thousands of objects (nodes, links, highlights) more efficiently than individual DOM elements or SVG for each, thanks to batch drawing and GPU usage. We can use a library like **PixiJS** (for 2D WebGL) or even the lower-level WebGL API if custom. PixiJS, for example, allows creating sprites/graphics for each element and handles the WebGL under the hood. If we use tldraw, note that it by default uses the DOM for some things, but it’s optimized internally and also has a Canvas renderer.
+
+- **Spatial Partitioning**: Implement a structure like a **quad-tree** or grid index for canvas objects. This will allow us to quickly query which objects are within the current view (viewport) when the user pans or zooms. Only those objects will be drawn/updated. Objects far outside the view are skipped. This drastically reduces draw calls when zoomed into a section of a large canvas ([Scene graphs and spatial partitioning structures: What do you really ...](https://gamedev.stackexchange.com/questions/41872/scene-graphs-and-spatial-partitioning-structures-what-do-you-really-need#:~:text=Scene%20graphs%20and%20spatial%20partitioning,that%20you%20can%20gain)). We can update this spatial index whenever objects move or new ones are added. Many game engines use this technique to maintain high FPS even with many entities.
+
+- **Level of Detail (LOD)**: If the user zooms far out (seeing the entire project at once), rendering every detail might be unnecessary or impossible to see. We can implement LOD such that:
+  - At far zoom, simplify the drawing (e.g., draw contracts as simple dots or icons instead of full details).
+  - Show more details (like labels, or vulnerability icons) only when zoomed in closer. 
+  - This can be done by checking the zoom level on each render and conditionally drawing certain layers.
+
+- **Virtualized Element Loading**: Similar to how large lists are virtualized (only mounting DOM elements in view), the canvas could virtualize heavy subcomponents. If some UI elements are actual React components (like a comment pop-up or a context menu on an object), ensure they mount only when needed. For example, 1000 comment widgets off-screen should not all be mounted. Use portals or conditional rendering around the viewport.
+
+- **Double-buffering and Dirty Regions**: For Canvas2D (if not WebGL), we can use techniques like only redrawing the parts of the canvas that changed (dirty rectangles) rather than the whole thing on each frame. Also consider using an offscreen canvas for expensive drawing and then copy to onscreen canvas.
+
+- **Testing & Profiling**: Use browser dev tools to profile frame rendering. We aim to maintain 60 FPS during interactions. If any operation (like dragging 100 objects) causes jank, refine the approach (e.g., maybe simplify hit-testing by using bounding boxes from spatial index, etc.). 
+
+With these optimizations, the canvas should handle complex contract maps even on moderate hardware.
+
+### Real-Time Updates (Collaboration & Live Data)
+
+Real-time interaction is crucial for both collaboration and live monitoring. The design includes:
+
+- **WebSocket Connectivity**: The frontend will open a WebSocket connection to the backend (either directly to the API service or through a separate real-time server). This single connection can be used for:
+  - Collaboration sync (though if using Yjs with its own WebSocket provider, that might be a separate connection, possibly to a dedicated Yjs server).
+  - Receiving analysis progress and completion events (e.g., “analysis finished” or intermediate logs).
+  - Receiving on-chain events from the monitoring service.
+
+  If separate services emit events, it's possible we'll have multiple channels (but we can unify through the API service by having it subscribe or route messages). For simplicity, we might have one WS connection that the API server uses to push various event types to the client, with messages containing a type field.
+
+- **Collaboration Synchronization**: As described, using CRDT (Yjs) means each client has a local copy of the document (canvas state) and operations are merged automatically. The Yjs WebSocket provider ensures each operation a user does (move an object, add text) is broadcast to others. This yields real-time presence and editing without a central server computing diffs – the server is just a relay. This method is scalable and robust against temporary disconnections (it will sync up state when reconnected).
+
+- **Live Monitoring Data**: The canvas can visually reflect live blockchain data. For example, if the monitored contract has a variable (say "Total Staked") that changes, and that is represented on the canvas, we can update its displayed value in real-time when an event comes in. Similarly, if a particular function is executed (detected via an event), we could momentarily highlight the corresponding node or increment a counter in the UI.
+  - Implement this by mapping incoming events to UI actions. Possibly maintain a mapping of known important data points. E.g., user marks a certain variable to track on the canvas, and we know its account offset, so when an `onAccountChange` comes in, we read that part of data and update the UI element.
+
+- **Concurrency & Consistency**: Handling multiple users editing the canvas at once:
+  - Because we plan to use CRDTs, we don't need a locking mechanism; all changes eventually merge. We should still indicate presence – e.g., show other users' cursors or a highlight on the item someone is editing. Yjs has an awareness feature for cursors and user status.
+  - If not using Yjs, an alternative is an OT (Operational Transform) or just last-write-wins via server. But Yjs is easier for arbitrary structured data like a canvas.
+  - **Presence indicators**: Show avatars or colored cursors on the canvas for each online user. Implement by broadcasting user presence on connect/disconnect and periodically (or use the CRDT awareness API that auto syncs a small state).
+
+- **Real-time Comments**: Comments added by one user should appear for others instantly. If using the same CRDT doc or a separate channel for comments, ensure that when one client posts a comment (via API or direct WS), others get it. Possibly simplest: when a comment is posted via API and stored, the API then emits a WS event "new_comment" to the project channel, and all clients append it. Or we integrate comments into the Yjs shared data (like a shared array of comments in the Yjs doc).
+
+- **Scalability for real-time**: One challenge is if many users (say 50) are online in the same project, the amount of real-time traffic. Our WebSocket and CRDT approach should handle this (50 is not huge for websockets, modern servers can handle thousands of connections). But ensure the server resources (thread or async event loop) is configured for that. If using Socket.io with multiple instances, use a Redis adapter for pub/sub between them so messages reach all clients regardless of which server instance they're connected to.
+
+- **Testing real-time**: We will simulate multiple clients (maybe headless or using integration tests with multiple browser instances via Playwright) to ensure changes propagate correctly and no race conditions.
+
+### Collaboration Features
+
+Beyond just editing the canvas together, the platform should support comprehensive collaboration tools:
+
+- **Commenting**: Users can comment on specific parts of the analysis. UI-wise, a user can select a node (e.g., a contract or function on the canvas) and add a comment. This could appear as a small chat bubble icon on that node. Clicking it shows the discussion thread. All team members can see and reply.
+  - Store comments in the DB (as described) and perhaps also keep them in the collaborative state for instant updates.
+  - Possibly integrate with mentions or notifications: e.g., if you comment `@Alice check this`, if Alice is part of the project, she could get notified (maybe via email or Slack).
+  - Comments should support markdown or at least code formatting, so people can share code suggestions. Possibly use a library for rich text editor for comment input.
+
+- **Versioning**: Keep track of analysis versions and allow viewing historical results:
+  - If a project is linked to GitHub, each analysis may correspond to a commit. Users should be able to select an older commit and see what issues were then, possibly via a dropdown.
+  - We can also allow manual snapshots: e.g., user triggers analysis and that is labeled "v1", later "v2", etc.
+  - On the canvas, versioning might allow an overlay or side-by-side view (this is advanced). At minimum, a user can switch which analysis results are being shown on the canvas (e.g., a timeline slider).
+
+- **Team Permissions**: Allow adding team members to a project:
+  - The UI provides an interface to invite users by email or username. The backend handles sending an invite or directly adding if the user exists.
+  - Roles: define perhaps roles like *Owner*, *Editor*, *Viewer*. Owner can manage roles and project settings, Editor can do analyses and comments, Viewer can only see results.
+  - The API endpoints check these roles (e.g., only Owner can trigger a re-run if we restrict that, etc.).
+  - Indicate in UI who is currently viewing the project (presence) as mentioned.
+
+- **Real-time Presence Indicators**: Show a list of online collaborators. Possibly highlight on the canvas what part each person is focusing on. E.g., if Alice is looking at a particular function node (perhaps we detect that because her viewport is centered there or she clicked it), we might show her name next to that node for others ("Alice is viewing this").
+  - We can use the WS/CRDT awareness state to broadcast simple info like the currently selected object or viewport coordinates for each user, then use that to display such indicators.
+
+- **Conflict Resolution**: Because of CRDT, conflicts are auto-resolved. But ensure that if two people edit the same text (say, rename a node) simultaneously, the result is a merged string (Yjs handles text merging at the character level). We should test these edge cases to ensure it’s intuitive.
+
+- **Save/Export**: Although the canvas is infinite, users might want to export a snapshot of the current view (e.g., to an image or PDF for a report). We can implement an export feature:
+  - Either client-side (use Canvas API to toDataURL, or HTML2Canvas for DOM elements).
+  - Or a headless browser on server to render (if high quality needed). This is a nice-to-have feature.
+
+The combination of these UI features makes the platform not just a static analysis tool, but an interactive workspace for teams to collaborate on smart contract security audits in real-time.
+
+## 4. Smart Contract Analysis Modules
+
+The core value of the platform lies in its ability to analyze smart contracts and provide insights. We outline the modules for **Security Analysis**, **Gas Optimization**, and **Code Quality Enforcement**, detailing how each works and is implemented.
+
+### Security Analysis
+
+The Security Analysis module identifies vulnerabilities and security risks in smart contract code. Key points in implementation:
+
+- **Static Analysis via AST**: We parse the contract code without executing it. As mentioned, using **Slither** is an excellent choice since it is a comprehensive static analyzer with many built-in detectors ([How to use Slither for auditing smart contracts - HackenProof](https://hackenproof.com/blog/for-hackers/how-to-use-slither-for-auditing-smart-contracts#:~:text=Slither%20is%20a%20Solidity%20static,tools%20for%20smart%20contracts%20auditing)). Slither can find issues like reentrancy, unused return values, shadowed variables, and many others, outputting them with details. By integrating Slither, we stand on the shoulders of a well-tested tool. We will run Slither as part of our analysis workflow for each contract and capture its output.
+  - If Slither output is in text, parse it; if using the Python API, we directly get Python objects for issues which is easier to convert to JSON results.
+
+- **Custom Vulnerability Rules**: In addition to Slither, add checks that are specific or not covered:
+  - e.g., Check for presence of `tx.origin` in code (which is unsafe for auth) via a simple AST scan.
+  - Ensure functions that should be restricted (like admin functions) have appropriate access control by detecting if they have a require on a owner variable.
+  - Analyze business logic if possible: This is more manual, but maybe allow users to write custom assertions or properties to check (like "this function should never be callable twice in a row" etc. – that drifts into formal verification territory, which is complex). Initially, stick to generic vulnerability patterns.
+
+- **Heuristic Analysis**: Some issues might not be straightforward pattern matches. For example, detect if a contract might be rug-pull prone: check if there's a function that allows an owner to withdraw all funds or change a critical parameter. These require understanding contract semantics. We can create heuristics like:
+  - Find functions that modify a mapping of user balances and see if there's any function (usually by owner) that can reduce those balances arbitrarily.
+  - Check if the contract's constructor or initialization properly sets important variables (some exploits happen due to uninitialized owner).
+  - These can be done by scanning for certain opcodes or AST nodes (like writing to storage of certain slots).
+
+- **Optional Dynamic Analysis**: Incorporate a tool like **Mythril** (which does symbolic execution) to catch issues like integer overflow or assert violations that static analysis might miss. However, symbolic execution can be slow on large contracts and may produce false positives, so perhaps make this an on-demand deeper scan.
+
+- **Output & Severity**: Each identified issue is classified (Low/Medium/High severity). For example, reentrancy = High, use of `block.timestamp` for randomness = Medium, lack of input validation = Medium, etc. We align with common vulnerability scoring or the SWC registry (Smart Contract Weakness Classification) which many tools reference.
+
+- **Presentation**: The results should be user-friendly. For each vulnerability, provide:
+  - Title (e.g., "Reentrancy Vulnerability"),
+  - Description (what it means and how it could be exploited),
+  - Location (which contract and line number),
+  - Recommendation (how to fix or mitigate).
+  - Possibly a link to learn more (e.g., link to an OWASP or SWC description page).
+  - If available, example of similar past exploit (education purpose).
+
+- **False Positive Management**: Static analysis might flag things that are intentional or not actually problems. We should allow the user to mark an issue as "ignored" or "false positive" so it doesn't keep showing. This can be stored in the DB (e.g., an `ignored_findings` table linking user/project and issue type or specific instance). Subsequent analyses can suppress those or mark them differently.
+
+- **Continuous Updates**: The vulnerability patterns in blockchain evolve. We should regularly update the analysis rules (e.g., update Slither to latest version for new detectors, add new custom checks as new vulnerabilities become known).
+
+### Gas Optimization
+
+Gas (for EVM chains) is crucial for cost efficiency. The Gas Optimization module provides insights into how to reduce gas usage:
+
+- **Static Checks for Gas**:
+  - Identify **expensive patterns**:
+    - Writing to storage multiple times where one would suffice.
+    - Using `SLOAD` inside a loop excessively (can suggest caching the value in a local variable).
+    - Not using `emit` for events when appropriate (events are cheaper to store data than storage variables if logging is the intent).
+    - Use of dynamic arrays that grow without bounds (could become expensive in the future).
+    - Not marking functions `view/pure` when they could be (doesn't save gas in execution, but is just a best practice for interface and maybe slight optimize).
+  - The Ethereum community has many **gas golfing tips**; incorporate those. For example: replacing `require(msg.sender == owner)` with a `modifier onlyOwner` doesn't change gas, but things like using `++i` (pre-increment) instead of `i++` in Solidity saves a tiny amount due to how the compiler works. These micro-optimizations might be too fine-grained, but we can mention them if we gather a list.
+
+- **Solidity Compiler Insights**: The compiler sometimes provides optimization hints/warnings. For example, if a function is too complex, or stack too deep issues. Running `solc --optimize` could potentially yield some info. Additionally, we can compile and look at the actual **bytecode** or opcode to spot inefficiencies (though that’s deep diving).
+  - We could use **ethervm.io** or similar to decompile or analyze bytecode gas, but that may be unnecessary if we stick to source-level suggestions.
+
+- **Gas Cost Measurement**: As previously mentioned, actually measure gas:
+  - Deploy the contract (on a local testnet) and run some typical functions. We can automate using Hardhat/ethers.js or web3.py.
+  - If the contract has no obvious "typical use", we might call each public function with some dummy data.
+  - The worker can output gas used for each call. E.g., "Function deposit() uses ~45,000 gas, withdraw() uses ~60,000 gas" etc.
+  - Then we analyze: 60k gas for withdraw might be fine, but if we know patterns, maybe it's higher than similar projects.
+  - We can maintain a knowledge base: e.g., an ERC20 transfer usually ~50k gas; if our analyzed contract's transfer is 100k, that's a red flag to optimize.
+  - Such comparisons can be included as suggestions ("Your function X is more expensive than industry standard for similar functionality").
+
+- **Automated Optimization Suggestions**:
+  - For some issues, we can directly suggest code changes. e.g., "Use `calldata` for function parameters instead of `memory` for external functions to save gas ([Slither - Solidity Tools - Alchemy](https://www.alchemy.com/dapps/slither#:~:text=Slither%20,summaries%20to%20further%20developer%20comprehension))" – this is a known tip (and Slither might catch it as an optimization).
+  - Another: If the contract uses `for (uint i = 0; i < arr.length; i++)` and `arr` is a storage array, reading `arr.length` each loop iteration costs gas – better to cache it. We could identify that pattern and suggest caching `uint len = arr.length; for(uint i=0; i< len; i++)`.
+  - If state variables that could be constant (as mentioned) – that's both a security (immutable) and gas (access is cheaper) improvement.
+  - Marking things `immutable` in Solidity 0.8 for variables set in constructor can save gas on access. 
+  - All these suggestions can be given as part of results, possibly with examples of the changed code.
+
+- **Execution Optimization**: If we want to be very thorough, we could integrate with **evm-trace** tools to see exactly which opcodes consumed gas. But that's probably overkill. The goal is to highlight higher-level optimizations.
+
+- **Other Chains**: The question specifically mentions Solana for monitoring, but the analysis seems focused on EVM (Solidity). If we were to extend to Solana’s smart contracts (which are typically Rust-based), the analysis would be entirely different. For now, we focus on Solidity EVM analysis as that's implied by mention of AST and gas.
+
+- **Output**: The gas analysis results can be shown in a section of the UI, maybe as a list of recommendations and a table of gas costs. Could also include a bar chart of functions vs gas (though the user said ignore plotting, so perhaps just textual or a simple table). For example:
+  ```
+  Function         | Gas Used (avg) | Suggestions
+  -----------------|----------------|------------
+  deposit()        | 45,210         | -
+  withdraw()       | 60,110         | Consider using unchecked arithmetic to save ~200 gas.
+  transferTokens() | 102,500        | High gas usage; consider refactoring loop or splitting function.
+  ```
+  And below textual suggestions with references to specific lines of code if possible.
+
+### Code Quality Enforcement
+
+This module ensures the contract code follows best practices and style guidelines, improving readability and maintainability:
+
+- **Linting**: Integrate **Solhint** (a linter for Solidity) or **Solium**. These tools have rules for style (naming conventions, ordering of functions) and some safety practices. We run the linter on the code and collect warnings.
+  - For example, Solhint would warn if function order is not consistent (e.g., fallback function not at end), or if there's a mix of tabs/spaces, etc.
+  - We will include these as low-severity issues or just as a separate "Lint" category.
+  - Many lint issues can be auto-fixed. We can run `solhint --fix` on the code to produce a corrected version (for style issues like indentations, etc.).
+
+- **Best Practices**: Beyond style, certain best practices:
+  - Use of modifiers for reuse (if a pattern is repeated, suggest abstracting it).
+  - Have Natspec comments for functions (Solidity best practice for documentation).
+  - Avoid magic numbers – suggest defining constants for any literal numbers that appear.
+  - If using older Solidity version, suggest using the latest stable (to benefit from compiler checks and optimizations) unless there's a reason.
+  - Ensure proper test coverage (though that's outside the code itself; perhaps if integrated with a GitHub repo, see if there's a test folder present).
+  - Check for TODO or FIXME comments left in code and flag them.
+
+- **Automated Formatting**: Using a tool like **Prettier Solidity** to format the code in a standard style. This can be offered as a one-click action to the user (download the formatted file or open a PR with formatting changes if GitHub is connected).
+
+- **Enforcing Patterns**: If the project uses a certain framework (like OpenZeppelin), ensure they're using it correctly:
+  - e.g., If the contract looks like an ERC20 token, check if they imported OpenZeppelin ERC20 rather than writing from scratch (reinventing can introduce bugs).
+  - If they did write from scratch, highlight that using a vetted library is safer.
+  - If they imported OpenZeppelin but an old version with known issues, recommend updating to latest.
+
+- **Customized Rulesets**: Possibly allow the user/team to define some custom rules. For instance, a team might say "All state variables must be private, we don't allow public state variables." We could let them configure that and the analysis will flag any violation. This is advanced but useful for enterprise style guides.
+
+- **Output**: List of issues or suggestions that are not strictly "bugs" but improvements. Possibly classify them as "Info" severity. The user can choose to auto-apply some (like formatting, adding missing license identifier at top of file which is often required, etc.). If integrated with GitHub, we could offer to open a Pull Request with fixes for certain issues (like all the auto-fixable ones).
+
+- **Quality Metrics**: We can also present some metrics:
+  - Code complexity (e.g., functions with too many lines or too high cyclomatic complexity).
+  - Contract size (bytecode size, approaching block gas limit? Large contract could be an issue).
+  - Number of TODOs, etc.
+  - These give a sense of code health.
+
+Combining these modules, our platform provides a one-stop analysis covering security, efficiency, and quality. It’s important that the results from all modules are presented in a unified way, so a user doesn’t have to wade through disparate reports. They should see a cohesive list or dashboard of findings.
+
+## 5. Scalability & Deployment
+
+Designing for scalability and secure deployment ensures the platform can handle growth (e.g., many analyses requests, many concurrent users) and remain reliable. Below we discuss how to scale using Kubernetes, apply rate limiting, and harden security.
+
+### Kubernetes-Based Scaling
+
+Deploying our microservices on **Kubernetes** (K8s) will provide the elasticity and robustness we need. Each service (API, Worker, Monitoring, maybe even the front-end if we containerize it) can run in its own set of pods, which we scale as needed:
+
+- **Container Orchestration**: We'll use K8s to manage the Docker containers. Each service gets a Deployment:
+  - `api-deployment` (with, say, 2 replicas to start),
+  - `worker-deployment` (with maybe 1 replica to start, but scalable),
+  - `monitor-deployment` (1 replica likely is enough, unless monitoring thousands of addresses, then scale).
+  - Frontend could be served via a CDN or static host (like Vercel), but if needed, we could containerize Next.js as well behind a reverse proxy.
+
+- **Auto-scaling**: Leverage Horizontal Pod Autoscalers (HPA) for critical services:
+  - For the API, scale based on CPU or memory usage (if traffic spikes, add more pods).
+  - For the Analysis Worker, scale based on the length of the task queue. This is a bit trickier because HPA by default uses CPU/etc, but our key metric is queue length (number of pending jobs). We can expose queue length as a custom metric. A popular approach is to use **KEDA (Kubernetes Event-Driven Autoscaling)** which can scale workers based on external metrics like a RabbitMQ queue length ([Remarkable Ways to Harness KEDA to Auto scale Your Kubernetes ...](https://www.cloudthat.com/resources/blog/remarkable-ways-to-harness-keda-to-auto-scale-your-kubernetes-workloads#:~:text=Remarkable%20Ways%20to%20Harness%20KEDA,KEDA%20can)). KEDA has connectors for many queues (RabbitMQ, Azure ServiceBus, etc.). We configure it: e.g., "if queue 'analysis_jobs' has >10 messages, increase pods, if 0 messages, scale down to 0 or 1".
+  - Alternatively, we can approximate scaling by CPU: if each analysis job tends to use full CPU for some time, then CPU usage can proxy for how busy the worker is.
+  - We can set a max scale for cost control (e.g., at most 10 workers) or use cluster auto-scaling.
+
+- **Database Scaling**: We use a managed Postgres (Railway’s Postgres or Supabase). Ensure the DB plan can handle our workload (connections, IOPS). Use connection pooling (discussed below) to not exhaust connection limits. If needed, we can scale the DB vertically (more CPU/RAM) or read-replicas for heavy read load (though most queries are project-specific, so one primary is fine initially).
+
+- **High Availability**: 
+  - Run at least 2 instances of API (behind a Service with load balancer) so if one crashes, the other handles traffic.
+  - Use liveness probes to have K8s auto-restart pods that hang.
+  - The worker jobs – if a worker pod dies mid-job, our queue will detect unacknowledged message and requeue it (depending on queue settings). So jobs aren’t lost, just delayed.
+  - Monitoring service if it crashes will lose event subscriptions – we can either rely on it restarting quickly with Kubernetes or have a secondary standby. Given it's not user-facing, one instance is probably okay with quick restart on failure.
+
+- **In-Cluster Communication**: Services will talk within cluster (e.g., API to DB, or worker to DB). We should deploy them in the same VPC/namespace and use K8s service DNS for communication. For example, API uses environment variable `DATABASE_URL` that points to the Postgres service host. If using a cloud Postgres (like Supabase cloud), then it's outside cluster but accessible via internet – secure that connection (SSL enabled, IP whitelisting maybe).
+
+- **CI/CD to K8s**: We can use CI to build images and then use a tool like Argo CD or Flux for continuous deployment to K8s (if we manage our own cluster). However, since the prompt specifically mentions Railway & Vercel for deployment, it suggests a PaaS approach rather than managing our own K8s cluster. Possibly, Railway abstracts some of this (they likely run on K8s behind the scenes). We will cover Railway specifically later. But if we did use K8s (say on AWS EKS or DigitalOcean), the above points hold.
+
+- **Resource Requests/Limits**: Set appropriate resource requests/limits in K8s for each pod to ensure stable scheduling. E.g., API might request 200m CPU, 256Mi memory each; Worker maybe 500m CPU (analysis can be heavy) and 512Mi memory (Slither might need memory to parse AST, etc). Fine-tune based on profiling.
+
+- **Connection Pooling**: In a microservices environment, if each instance of API or worker opens DB connections, the total can overwhelm the DB. Use a pool manager:
+  - For Python, SQLAlchemy’s connection pool (FastAPI can use SQLAlchemy or asyncpg).
+  - For Node, use `pg` module’s pooling or an ORM like Prisma which pools under the hood.
+  - Alternatively, use a proxy like PgBouncer in transaction pooling mode between the app and DB to limit actual connections. For instance, we can deploy PgBouncer as a sidecar or separate service that all apps connect to, and it maintains a smaller pool to Postgres.
+  - Example: limit max 10 connections per API instance in pool. If 4 API pods, that's 40 max. The DB (maybe allow 100 connections) is safe. 
+  - The worker may hold a connection while writing results; we can also ensure it closes after done or uses a pool with small max as well.
+
+### API Rate Limiting & Caching
+
+To ensure fair use and prevent abuse or accidental overload, implement rate limiting and caching strategies:
+
+- **Rate Limiting**:
+  - Use a middleware to limit how many requests a single user or IP can make to the API per minute. For example, allow 100 requests/minute per IP for general use, with bursts allowed for legitimate usage but clamp down on extremes.
+  - Libraries: If using FastAPI, integrate something like `slowapi` or `starlette-rate-limit`. If using Node/Express, use `express-rate-limit` ([How to Implement Rate Limiting in Express for Node.js](https://blog.appsignal.com/2024/04/03/how-to-implement-rate-limiting-in-express-for-nodejs.html#:~:text=How%20to%20Implement%20Rate%20Limiting,requests%20to%20all%20APIs)).
+  - We might set different tiers: Authenticated users get a higher quota than anonymous (if any open endpoints). Or certain expensive endpoints (like triggering analysis) could have specific limits (e.g., prevent spamming analysis which could abuse resources).
+  - The rate limiter should issue proper HTTP 429 responses when exceeded, and perhaps the front-end can handle that gracefully (showing a message like "You are doing that too often, please slow down").
+
+- **Caching**:
+  - Some API responses can be cached to improve performance:
+    - Static data like list of known vulnerability descriptions can be cached on CDN or memory.
+    - Project analysis results, once computed, are not changing until re-run. So fetching the results could be served from a cache (store in Redis or memory) to avoid hitting the DB repeatedly especially if many team members are looking at the same project results.
+    - However, consistency is important: if a new analysis finishes, we should bust the cache for that project’s results.
+    - We can use an in-memory cache on the API instances (like a Python dict or an LRU cache) for small data, but for a distributed environment, a shared cache like **Redis** is better, so all API pods see the same cache. 
+    - Alternatively, rely on the fact that analysis results are in DB and typically a single query fetch (which Postgres can handle and cache internally if repeated).
+  - Another layer is HTTP caching: Using ETag headers on responses so clients can cache in browser. For instance, `GET /api/projects/123/results` could return an ETag (like a hash of last analysis timestamp). The frontend can use If-None-Match on subsequent requests to save bandwidth.
+
+- **Throttling Analysis**:
+  - Because analysis jobs are heavy, we might also implement logic to throttle how many concurrent analyses a single user or project can run. E.g., if user tries to run 5 at once, queue them but maybe limit to 2 concurrently for that user to avoid hogging all workers.
+  - This can be enforced at enqueue time (check user’s active jobs count from DB or in memory).
+  - We can also prioritize jobs (maybe webhooks or premium users get higher priority in queue).
+
+- **Efficient Use of External APIs**:
+  - If we call external APIs (GitHub, Slack), implement caching where appropriate (like caching GitHub repo file listings for a minute or two rather than fetching every time if not changed).
+  - Also use rate limit info from those APIs to not exceed (GitHub has 5000/hour per token, Slack also has limits).
+
+- **Use CDN**:
+  - The frontend static assets (JS bundles) will be on Vercel which uses a CDN by default, so that’s handled.
+  - For API, if we had any public content (like documentation site or user guides), we could put those behind a CDN as well.
+  - If needed, we could use Cloudflare in front of the API to cache GET requests and provide DDoS protection. This might not be necessary at first but is an option.
+
+### Security Hardening
+
+Security is paramount since this platform deals with potentially sensitive smart contract code (which might be private before deployment) and integrates with external accounts.
+
+- **Input Sanitization**:
+  - **API Inputs**: All API inputs (JSON bodies, query params) should be validated. Using Pydantic (FastAPI) we already define schemas, which ensure types are correct. But also think of content: e.g., when users submit source code, that code might contain any bytes. We should handle it properly (store safely, and when displaying in UI, escape any HTML to prevent any injection if we ever reflect it).
+  - **Prevent Injection**: Use parameterized queries or ORM to avoid SQL injection (by default, using an ORM or parameterized queries covers this). Do not directly concatenate untrusted data into queries or system commands.
+  - For file paths, if we ever handle file system, ensure no path traversal (probably not applicable as we likely keep everything in DB or in-memory).
+  - If using Node, watch out for command injection if using `child_process` for anything (like calling solc). In Python, using subprocess for solc is okay if we pass file paths safely. Possibly safer to use solc as a library (there's `py-solc-x`).
+  
+- **Authentication Security**:
+  - Use secure password storage (bcrypt if we have passwords).
+  - Implement OAuth securely: validate state param, handle token exchange server-side, etc.
+  - Use HTTPS everywhere (the deployment on Railway/Vercel will provide TLS).
+  - For JWT, use strong secret key and algorithm (HS256 or RS256). Consider rotating secrets periodically.
+  - Set appropriate JWT expiration and maybe use refresh tokens stored httpOnly cookie for web to avoid long-lived tokens in local storage.
+  - Protect against JWT theft: maybe integrate something like IP binding or jti (token ID) blacklisting on logout.
+
+- **Authorization Checks**:
+  - Double check every API that it’s not giving data from one user to another. Enforce project-based scoping on all queries.
+  - For example, when fetching analysis results, ensure that the user making the request has access to that project. Even if someone manipulates IDs in the URL, they should get 403 if not allowed.
+
+- **Encryption & Secrets**:
+  - Encrypt sensitive data at rest. If storing Slack webhook URLs or GitHub access tokens in the DB, encrypt them. We could use a simple symmetric encryption with a master key stored in an environment variable (or use cloud KMS).
+  - Alternatively, avoid storing tokens if possible: For GitHub integration, a user can OAuth each time we need to do something (less user-friendly), or store a long-lived token to act on their behalf – if so, treat it carefully.
+  - User-provided contract code might be sensitive IP; we should consider encrypting it in the database or at least clearly not exposing it to anyone else. Given we control access at app level, encryption might not be strictly needed, but if the DB leaks, the code would leak. So encryption could be a selling point for security (e.g., using libsodium to encrypt code with a key only the worker/API knows).
+  - Use TLS for all external communications: ensure our calls to GitHub, Slack, Solana RPC etc., are all over HTTPS/WSS. That’s default nowadays but worth noting.
+
+- **Server Hardening**:
+  - Keep dependencies updated to get security patches (setup dependabot or similar for GitHub).
+  - Run containers as non-root users. In Dockerfiles, use a specific user with least privileges.
+  - Use read-only file systems for containers if possible (especially for the worker, since it doesn't need to write to disk except maybe /tmp).
+  - Drop capabilities in Docker if not needed, etc.
+  - On K8s (if used), enforce network policies so that, for example, only the API and worker can talk to DB, others can't. And none of the pods should be able to reach out to internal cloud metadata endpoints (to avoid SSRF leading to credentials).
+  
+- **Dependency Security**:
+  - The analysis involves running static tools on untrusted code. We should be careful that those tools (e.g., Slither, solc) are robust against malicious input. It's possible someone provides a specially crafted Solidity file that exploits a bug in the compiler or Slither to execute arbitrary code. This is an unlikely but plausible scenario. To mitigate:
+    - Run the analysis in a sandbox. For example, run each job in a separate Docker container or use something like Firecracker microVM if high security. At least, ensure the worker container has limited permissions.
+    - Keep the analysis tools updated to incorporate their security fixes.
+    - Perhaps use Linux seccomp/apparmor profiles to restrict syscalls the container can make.
+  - Similarly, the monitoring service connecting to blockchain should not be exploited by data – but since it's just reading via RPC, it's okay.
+
+- **Penetration Testing**:
+  - Once the platform is up, consider hiring a security review or running automated scans (OWASP ZAP for the web, etc.).
+  - Check for common web vulns: XSS (particularly in any feature that displays contract code or comments – ensure we escape HTML and possibly use a markdown renderer that is safe), CSRF (for API, use proper CORS and require auth header so CSRF is not possible, or if any state-changing endpoints could be triggered by GET, protect them).
+
+By applying these security practices, we aim to protect both our infrastructure and our users' data (and their connected accounts) from breaches or misuse.
+
+## 6. Comprehensive Testing Strategy
+
+A robust testing strategy will ensure each component of the platform works correctly in isolation and in concert, and that the system can handle high load. We cover unit, integration, load testing, and CI/CD automation for testing.
+
+### Unit Testing
+
+Each microservice and module should have thorough unit tests:
+
+- **Frontend Unit Tests**: Use a testing framework like Jest with React Testing Library for the Next.js app. Test key components:
+  - The canvas components: test that given some state (like a set of nodes), it renders correctly. Simulate user interactions (dragging a node, adding a comment) and assert the state changes or appropriate callbacks are triggered.
+  - Utility functions (if any) for things like coordinate transforms, etc.
+  - Ensure no regression in collaboration logic (this might be tricky to unit test, maybe better in integration tests with multiple clients).
+
+- **Backend API Tests**: If using FastAPI, leverage the FastAPI TestClient to make requests to the API routes in a test environment.
+  - Use fixtures to set up a temporary database (perhaps a SQLite in-memory or a testing Postgres with transactions rolled back).
+  - Test each endpoint:
+    - Auth: hitting a protected endpoint without auth returns 401, with auth returns expected data.
+    - Project creation, analysis request flows. Possibly mock the queue so that analysis jobs aren't actually run, but we simulate that a job would be enqueued.
+    - Webhook endpoints: simulate a GitHub payload POST and ensure a job is enqueued.
+  - Also test edge cases: invalid inputs (should return 422 or custom validation errors), unauthorized access, etc.
+  - If using Python, might use pytest with fixtures for setting up DB, and maybe factory boy or similar to create test data.
+
+- **Analysis Worker Tests**: This is largely logic tests:
+  - We can include some known vulnerable contract codes (perhaps small snippets) in the repo as test inputs. For example, a simple contract with a reentrancy bug. Run our analysis function on it and assert that we get a finding for reentrancy.
+  - Similarly, test that the gas analysis catches a simple known pattern (like a loop with storage access).
+  - If Slither is used, we might not test Slither itself (that's a third-party), but test our integration: e.g., if we mark something to ignore, ensure our code filters it.
+  - Also test the queue processing logic: e.g., a function that processes a job from the queue should handle when analysis throws an exception (should catch and mark job as failed gracefully).
+
+- **Monitoring Service Tests**: 
+  - Simulate a connection to a Solana cluster. This is tricky without a live Solana node; could use devnet or a local solana-test-validator (which can be started for tests).
+  - Alternatively, abstract the Solana connection behind an interface and inject a mock that generates fake events.
+  - Test that when a certain event happens (e.g., an account data change), our code correctly calls the notify function or writes to DB.
+  - Test reconnection logic by simulating connection drop.
+
+- **Contract Tests**: Not exactly unit tests of our code, but we might include some test smart contracts and use a framework to test them to ensure our analysis picks up everything. E.g., deploy a known vulnerable contract to ganache, run analysis, ensure vulnerabilities are detected and also maybe simulate an exploit to confirm the vulnerability is real. This is more of an integration test between analysis and actual blockchain.
+
+- **Coverage**: Aim for a high test coverage, especially in critical logic (analysis algorithms, permission checks in the API). Use coverage reports (pytest-cov, jest --coverage) to identify untested code.
+
+### Integration Testing
+
+Integration tests cover the interactions between components:
+
+- **End-to-End Tests**: Simulate a user flow in a staging environment:
+  - Use a tool like **Playwright** or **Cypress** to run a headless browser that goes through the app. For example: 
+    1. Launch the frontend (pointing to a test instance of backend).
+    2. Register or login a test user.
+    3. Create a new project, upload a sample contract.
+    4. Click analyze, wait for results.
+    5. Verify that the results appear on the UI (e.g., check that the DOM shows a vulnerability list).
+    6. Add a comment, open a second browser as another user to see if it appears (testing collaboration).
+    7. Perhaps even simulate a Solana event: this is hard in a pure front-end test, but we could have a test endpoint to trigger a fake event to see if UI updates.
+  - These tests ensure the whole chain (frontend -> backend -> worker -> DB -> frontend updates) is working.
+
+- **API <-> Worker Integration**: Start up a test instance of the API and worker (pointing to a test DB and test queue). Use the API (via HTTP) to submit a job and have the real worker process it. 
+  - This can be done with docker-compose in CI: services for api, worker, a test DB, and then run tests that call the API.
+  - Verify that after a short delay, the results are in DB. Possibly have the API provide a hook for test to know job done, or poll an endpoint until status = completed.
+  - This tests that the messaging (queue) and DB integration works in practice.
+
+- **Microservice Communication**: Test scenarios like:
+  - If the worker is down, the API should still accept requests and queue them; when worker comes up and processes, nothing is lost.
+  - If the API is scaled to multiple instances, ensure a job submitted to one and result fetched from another instance works (this relies on shared DB, so it should).
+  - Monitoring service integration: possibly run a local solana validator in test, deploy a sample program or just simulate by calling the monitoring service's internals.
+
+- **Database Migrations**: Test running migrations on a copy of production data (or at least in CI on some filled schema). Ensure no data loss or errors. This can be part of integration tests to ensure our migration scripts are solid.
+
+- **Error Case Integration**: Force certain errors:
+  - Make the analysis tool throw an exception (perhaps by giving it some invalid input) and ensure the system handles it (the job marked failed, user gets a sensible error message).
+  - Bring down the DB to see if services report errors gracefully (not crash in a way that loses requests).
+  - These might not be automated often, but at least manual integration testing for resilience.
+
+### Load Testing
+
+Simulating heavy load is crucial, especially for analyzing many contracts concurrently or many users collaborating:
+
+- **Concurrent Analysis Jobs**: Use a tool or script to simulate many analysis requests. For instance:
+  - Write a Python script or Locustfile that spawns, say, 1000 tasks over a period of time calling the `POST /api/analyze` (with maybe some simple contract or use random contracts from a set of samples). 
+  - Ensure our queue and worker scale can handle it. We might start with smaller scale in testing (since running 1000 heavy analyses for real is expensive), but we can simulate by using a dummy lightweight analysis function for the sake of load test, or limit to one aspect (like run just Slither without symbolic execution).
+  - We can observe how the queue backlog grows and how quickly workers drain it. The system should not crash and should eventually process all (perhaps scaling out if possible).
+
+- **Concurrent Users**: Simulate 1000 users interacting with the frontend:
+  - Tools like **k6** (JavaScript-based load tool) can simulate virtual users performing sequences of actions (though not full browser, but it can hit HTTP endpoints).
+  - We could simulate users opening a project (GET endpoints for results, comments) and maybe even open WebSocket connections. k6 now supports WebSocket testing to some extent.
+  - Alternatively, use JMeter or Gatling. But Locust is nice in Python and can be distributed, able to simulate millions of users by scaling load generators ([Everything you need to know about load testing](https://queue-it.com/blog/load-testing/#:~:text=Locust%3A%20A%20Python,Locust%20is%20user)).
+  - Focus on API throughput: see if multiple users editing doesn’t overwhelm the real-time server. For websockets, measure message latency with, say, 50 concurrent editors.
+
+- **Resource Monitoring**: During load tests, monitor CPU/memory of each service. Ensure no memory leaks (memory usage should plateau or drop after load). Check if any timeouts occur or if the system queues up too much.
+  - Possibly use APM or at least log metrics. For example, log how long analyses take on average under load.
+
+- **Scaling Behavior**: If using Kubernetes or auto-scaling in Railway:
+  - Test that auto-scaling actually triggers. For instance, during a load test of analysis, see if new worker instances spin up. This might be visible via metrics or logging (the HPA events, etc.).
+  - If scaling is too slow, adjust thresholds.
+
+- **Database Performance**: Under heavy load, ensure the DB is not a bottleneck. We might use PG bloat or slow query logs to see if any query is slow. If so, consider adding index or optimizing that part. For example, if 1000 analyses finish around the same time and all try to insert findings, is the DB handling it? Use transactions properly and perhaps batch inserts for findings for efficiency (instead of one insert per finding, do one bulk insert per analysis).
+
+- **Collaboration Load**: Testing real-time collab with many users is tricky but imagine a scenario of a big team (20 people) on one canvas. We should simulate or manually test that to ensure the CRDT updates propagate and the UI doesn’t bog down. Yjs is designed to handle a lot of updates (the limiting factor might be network, but LAN or good connectivity should be fine for tens of users).
+
+### CI/CD Automation
+
+We integrate testing into our Continuous Integration and set up continuous delivery:
+
+- **CI Pipeline**:
+  - On each push/PR, run unit tests. Use matrix builds if we want to test different configurations (like Python 3.9 vs 3.10, or Node 16 vs 18).
+  - If all tests pass, build the Docker images (we can do this in CI to ensure Docker builds don't break).
+  - Possibly push images to a staging registry.
+  - Run integration tests. This might involve bringing up services in CI environment:
+    - Use `docker-compose -f docker-compose.test.yml up -d` to start API, Worker, DB, etc., then run a test suite that hits the API.
+    - Or use `pytest` with test that use subprocess to start the server (maybe not robust).
+    - Alternatively, use an ephemeral environment feature if available (some platforms allow spinning up a full environment for testing).
+  - It's important to balance thoroughness vs runtime: heavy integration tests or load tests might not run on every push (maybe nightly or on demand). At least basic integration flows should run on PR.
+  - Generate coverage reports and fail if coverage drops below certain %. This keeps code quality up.
+
+- **CD Pipeline**:
+  - After merge to main (or a tagged release), automatically deploy:
+    - If using Railway/Vercel with Git integration, they might handle deploy on push to main. In that case, our "CD" is basically handing off to those services.
+    - Alternatively, use a GitHub Action to deploy: e.g., for Railway, perhaps use their CLI `railway up` or an API token to trigger deployment. For Vercel, use Vercel CLI or just rely on linking the repository to Vercel (commonly the case).
+  - Running database migrations as part of deploy: need to ensure when a new version is deployed, the migrations run. On Railway, one strategy is to have the backend run migrations on startup (like our code could detect if migration needed and run Alembic). Or use a separate job in CI that runs `alembic upgrade head` on the database.
+  - Ensure zero-downtime: apply migrations in a backward-compatible way whenever possible (so new code can work with old schema during deploy, or vice versa, for the short overlap).
+
+- **Testing in CD**:
+  - Possibly have a staging environment. After CI passes, deploy to a staging Railway project & a staging Vercel domain. Run the end-to-end tests against that environment to ensure all is well in a production-like setting. Then promote to production.
+  - This could be automated or require a manual approval (some teams prefer manual check before prod deploy).
+
+- **Post-Deploy Monitoring**:
+  - Though not exactly testing, set up alerts if something goes wrong in production. e.g., if error rate goes above X or if response time spikes, alert the team. This ensures issues that slip past tests are caught quickly.
+
+By following this testing strategy, we will catch bugs early and often, ensure new changes don't break existing functionality, and have confidence the platform can handle real-world usage at scale.
+
+## 7. Deployment Guide for Railway & Vercel
+
+Finally, we outline how to deploy this platform on **Railway** (a cloud deployment platform suitable for backends and databases) and **Vercel** (ideal for Next.js frontends). We ensure that all services communicate properly across these deployments and provide tips for tuning performance in production.
+
+### Railway Deployment (Backend Services)
+
+Railway is a convenient PaaS that can host Dockerized apps, databases, and more. We will deploy the backend components (API, Worker, Monitoring, DB) on Railway:
+
+- **Railway Project Setup**:
+  1. Create a new Railway project (through their web UI or CLI).
+  2. Add a PostgreSQL database plugin: In Railway, you can add a **PostgreSQL** service to your project. This will provision a database and provide connection URL (e.g., in the form `postgres://user:pass@host:port/dbname`).
+  3. Add a Redis or RabbitMQ if needed for the queue. Railway supports Redis easily. If using RabbitMQ, Railway might not have it as a built-in, but we could run a RabbitMQ as a service using a public image. However, using Redis (as a broker for Celery or as a simple queue) might be simpler on Railway since it's offered.
+  
+- **Deploying the API Service**:
+  - Railway can deploy from GitHub. Connect the Railway project to the repository and select the `backend-api` directory (if monorepo) or the repo (if just that service).
+  - If using **Nixpacks** (Railway's auto build): Railway might auto-detect a Python project and install requirements. But since we have multiple services, better to use a Dockerfile for each to ensure consistency.
+  - Provide the Dockerfile path for the API service. Railway will build it.
+  - Set environment variables in Railway:
+    - `DATABASE_URL` (Railway’s provided Postgres connection string can be referenced as an env var).
+    - `REDIS_URL` or `QUEUE_URL` if using a queue (Railway provides a Redis URL as well).
+    - `JWT_SECRET`, `GITHUB_OAUTH_CLIENT_ID/SECRET`, Slack tokens, etc. These should be added via the Railway dashboard in the project's variables section. They will be injected into the container.
+    - Any other config like `ENV=production`, `DOMAIN=api.myapp.com` if needed for CORS, etc.
+  - Set the port in Railway service to match our app (Railway by default sets `$PORT` env, and we should have our app use that). Our FastAPI app will run on that port.
+  - Deploy: After setup, Railway will build and launch the container. We can check logs to ensure it started and connected to the DB.
+
+- **Deploying the Analysis Worker**:
+  - Add another service in the same Railway project for the Worker. Railway allows multiple services in one project that share the same plugins (DB, etc.) which is useful.
+  - If using a monorepo, specify the directory for the worker and its Dockerfile.
+  - Env vars: It will also need `DATABASE_URL` (if it writes results to DB) and `REDIS_URL` (for the queue) the same way. Railway’s interface allows sharing env vars across services easily.
+  - Ensure the worker starts the worker process on launch (the Docker entrypoint). For example, if using Celery with Redis, the entry might be `celery -A app.tasks worker --concurrency=1 --broker=$REDIS_URL`.
+  - Once deployed, it should connect to Redis and wait for jobs. Check logs for successful connection.
+
+- **Deploying the Monitoring Service**:
+  - Add another service in Railway for monitoring. Use its Dockerfile.
+  - Env vars: Possibly just `DATABASE_URL` (if it logs to DB) and any Solana RPC endpoint config. If using a public RPC like `api.mainnet-beta.solana.com`, no auth needed; but better to use a provider. We might use something like `QUICKNODE_WSS_URL` if we have one, or use the free public (but rate-limited) one for mainnet. Alternatively, deploy the monitoring for dev on testnet.
+  - Deploy and check logs that it successfully connects (it might log "subscribed to program ...").
+
+- **Networking & Domains**:
+  - Each Railway service gets its own URL (e.g., `api-app-name.up.railway.app`). We will have one for API and possibly one for others if they are web-accessible. The worker and monitoring typically don't need external URL (they don't serve HTTP). But Railway might still assign one; we can ignore or disable ingress if possible.
+  - We should set up CORS in the API to allow the Vercel frontend domain (which will be something like `myapp.vercel.app` or a custom domain).
+  - If custom domain for API is desired (like `api.myplatform.com`), Railway allows adding a custom domain to the service. We then update DNS accordingly. But not mandatory.
+
+- **GitHub/Slack Webhooks**:
+  - For GitHub webhooks, GitHub needs to reach our API. The Railway API service URL is accessible publicly. Use that in the GitHub webhook settings. E.g., `https://api-app-name.up.railway.app/api/github/webhook`. Ensure that path is correct and the service is running with SSL (Railway provides HTTPS by default).
+  - Similarly for Slack, when configuring the Slack app's request URL or slash command URL, use the Railway URL.
+
+- **Background Tasks**:
+  - Railway ensures your services stay up. If a service crashes, it will restart it. We should configure any health checks if needed.
+  - For scaling on Railway: Railway can automatically increase resources if on a certain plan. They recently introduced autoscaling for certain plans or one might manually scale instance size. If we anticipate heavy use, allocate enough CPU/RAM in Railway settings for each service.
+
+- **Monitoring on Railway**:
+  - Use Railway's metrics if available to see CPU/memory usage over time. This helps tune our instance sizes or number of replicas (though Railway typically runs one instance of each service, not multiple, unless they launched scaling).
+  - Use logs to watch for errors. Possibly integrate Sentry (just include Sentry SDK in code with DSN) for error tracking across services.
+
+### Vercel Deployment (Frontend)
+
+Vercel is ideal for Next.js, offering quick deployments and global CDN. Steps for deployment:
+
+- **Project Setup**:
+  1. Log in to Vercel and select "New Project". Import the GitHub repository (if monorepo, it will ask which folder is the frontend).
+  2. Configure project settings:
+     - Framework = Next.js (detected automatically).
+     - Build command: `npm run build` (or `next build`).
+     - Output directory: `.next` (default for Next; Vercel knows how to handle it).
+     - Environment Variables:
+       - Set `NEXT_PUBLIC_API_URL` to the Railway API URL (so frontend knows where to send requests). The `NEXT_PUBLIC_` prefix makes it accessible in client-side code.
+       - If using any keys on frontend (like for a third-party, though likely not).
+       - If using Sentry or analytics on frontend, set those DSNs.
+     - If we have a custom domain for frontend (like myplatform.com), add it in Vercel.
+  3. Deploy: Vercel will build the app. During build, it might run `getStaticProps` or `getServerSideProps` if we have any. Our app is mostly client-side interactive, but if we used Next.js API routes or SSR, those run on Vercel functions.
+  
+- **Real-time Consideration**: Vercel is serverless for backend functions. If our frontend uses Next.js API routes for websockets, that wouldn't work well (serverless can't hold WS easily). We avoided that by having our own API on Railway. So, the Next.js app on Vercel is just static and client-side.
+  - All API calls from the browser go to Railway. Ensure CORS is set so that the Vercel domain is allowed by Railway API. We can restrict allowed origin to the Vercel domain (and our custom domain) for security.
+  - WebSockets: The client will open WebSocket to Railway API service (assuming we serve WS on same domain/port). That should work if we configure the backend to accept WS upgrades. Alternatively, we might decide to use a separate service for realtime (like a dedicated socket server). But simplest: use the API service (FastAPI supports websockets under the same server).
+  - If any env is needed on build (like feature flags), ensure set in Vercel.
+
+- **Multi-user**: Vercel auto-scales the frontend globally. So 1000 users connecting is no problem; the static files are CDN cached. If we had SSR pages, Vercel would spin up as needed. But our pages likely mostly use client-side rendering after initial load.
+
+- **Testing Deployment**: Once Vercel build is complete, access the Vercel-provided URL (like myapp-git-main-account.vercel.app or the custom domain). Ensure it loads the app.
+  - Try logging in, creating project, etc, to test connectivity to the backend. Common issues might be CORS or env misconfiguration (like if NEXT_PUBLIC_API_URL was wrong).
+  - Fix any issues by adjusting Vercel env or backend config, then redeploy.
+
+- **Performance on Vercel**:
+  - Next.js and Vercel by default do well, but some tips:
+    - Enable Next.js [Image Optimization](https://nextjs.org/docs/basic-features/image-optimization) if we have user-uploaded images (we might not).
+    - Use Next.js dynamic imports to split code (if some heavy components only used on certain pages).
+    - Turn on gzip or brotli compression (Vercel serves static assets compressed automatically).
+    - Monitor Web Vitals (Vercel provides analytics for performance if enabled).
+  - Our app might be heavy on client-side JS due to canvas and collaboration libraries. Use code-splitting for heavy libraries (maybe don’t load them until user enters a project). This keeps initial load fast.
+
+### End-to-End Integration Across Deployments
+
+Ensuring that all services deployed on their respective platforms work together:
+
+- **Environment Configuration**: Double-check that the API service has the correct configuration to allow the front-end:
+  - CORS allowed origins include the Vercel domain (which could be a wildcard for the specific project). In FastAPI, use `CORSMiddleware` to allow the domain and websockets.
+  - The front-end env `NEXT_PUBLIC_API_URL` matches the API’s public URL (including protocol and maybe port if not 80/443).
+  - The WebSocket endpoint used on frontend should correspond (e.g., if API is at `https://api...`, websocket might be `wss://api.../ws/...`).
+
+- **Networking**: Vercel front-end will call out to Railway. There should be no network block since both are cloud and publicly exposed. Just ensure the API is not trying to be in some private network. Railway’s services are internet accessible by default (with a public URL). If we had the option to restrict access (some platforms allow private services), we should keep it public for the API.
+
+- **Testing Webhooks**: Simulate a GitHub event after deploy: push a commit to the test repo connected. See if GitHub delivers to Railway (you can check delivery status on GitHub settings). If fails, maybe a networking or DNS issue (less likely).
+  - Slack: try the slash command or event to see if Slack can hit the endpoint and if our responses appear.
+
+- **Monitoring**: Set up a status page or at least alarms:
+  - Railway doesn’t have a built-in status page, but we can use a service like UptimeRobot to ping our API health endpoint and front-end URL periodically.
+  - If using Sentry, configure it for both front and back to catch runtime errors and get alerts.
+
+- **Debugging**:
+  - If something goes wrong in prod, logs are our friend. Railway provides log access; ensure we print enough info (but not sensitive) for debugging.
+  - For example, log when a job is received and completed, so we can trace if jobs are stuck.
+  - Vercel logs (for front-end) will show if any errors happen in getServerSideProps or such (shouldn't much for our mostly static front).
+  - If needing to debug DB, have a way (Railway provides a browser to run SQL or connect with psql) to inspect data if something seems off.
+
+- **Scaling in Production**:
+  - Keep an eye on usage. If number of users grows, we might need to manually bump Railway plan (more CPU/RAM or more instances).
+  - Similarly, upgrade the Postgres plan for more connections or storage as needed.
+  - Vercel is pretty auto-scalable; just watch bandwidth if huge (rarely an issue until millions of users).
+
+### Performance Tuning & Cost Optimization
+
+Finally, after everything is running, optimize for speed and cost:
+
+- **Optimize Analysis Throughput**:
+  - Profile the analysis worker: which steps are slow? If Slither is slow on large code, see if enabling only certain detectors speeds it up (maybe give users option to select which analyses to run).
+  - Possibly run analyses in parallel (we set concurrency=1 earlier for simplicity, but we could allow each worker to use multiple processes if CPU has cores, though careful with memory).
+  - If using Celery, we can adjust prefetch and concurrency to maximize throughput without overwhelming DB.
+
+- **Database Tuning**:
+  - Ensure Postgres config is tuned for workload (Railway likely manages that, but things like increasing work_mem if needed for complex queries).
+  - Use indexes as discussed to keep query times low. If any slow query is found in logs (enable slow query log), fix it.
+
+- **Content Delivery**:
+  - We might consider using a CDN in front of the API if needed, especially if we have global users. Or deploy multiple instances of API in different regions behind a traffic manager. That might be overkill early on. But note, Vercel front-end is global, so a user in Asia hitting our API in US might see slightly higher latency for API calls. If that becomes an issue, consider options (Railway currently doesn't offer multi-region deployments easily, so we'd look at maybe moving to another solution or caching at edge).
+  - Leverage caching: if certain endpoints are called very frequently, ensure they're cached or efficient (we covered this).
+
+- **Cost Monitoring**:
+  - Railway usage: track the usage metrics to avoid surprises. Perhaps use alerts if nearing plan limits.
+  - Vercel bandwidth: likewise, though their hobby plan is generous, heavy usage might require pro plan.
+
+- **Gradual Rollouts**:
+  - As we iterate, maybe implement a canary deployment strategy: e.g., deploy new worker code that handles a portion of jobs while old still runs, to ensure stability. Railway doesn't have built-in canary, but we can do manual approach by having two versions if needed.
+
+- **User Feedback & Logging**:
+  - Add ways to measure performance from user side. For instance, log how long an analysis took end-to-end. If users are often waiting too long, that signals to optimize or increase worker power.
+  - Possibly measure WS latency or lost messages for collab if any.
+
+By following this deployment guide and continuously refining based on monitoring, we can maintain a fast, reliable platform. The combination of Railway and Vercel provides a mostly managed environment, reducing DevOps burden, while still allowing for scaling and configuration to meet our needs.
+
+---
+
+**References:**
+
+- Atlassian, *"SOA vs. Microservice: Learn the Difference"* – explains independence of microservices ([SOA vs. Microservice: Learn the Difference | Atlassian](https://www.atlassian.com/microservices/microservices-architecture/soa-vs-microservices#:~:text=Each%20service%20is%20independent%20and,and%20data%20to%20function)).  
+- Medium (Moesif), *"Mastering Your API Contract"* – on clarity from OpenAPI specs ([Mastering Your API Contract: A Guide to Establishing Clear ... - Moesif](https://www.moesif.com/blog/technical/api-development/Mastering-Your-API-Contract-A-Guide-to-Establishing-Clear-Guidelines-and-Expectations/#:~:text=Moesif%20www,enhancing%20its%20utility%20and%20usability)).  
+- Solana Cookbook, *"Subscribing to Events"* – using WebSockets like onAccountChange for real-time updates ([Subscribing to Events - Solana](https://solana.com/developers/cookbook/development/subscribing-events#:~:text=Subscribing%20to%20Events%20,use%20below%20is%20onAccountChange)).  
+- Stack Overflow, *"Improve Canvas rendering performance?"* – virtualization for canvas with 1,000,000 elements ([How to improve Canvas rendering performance? - Stack Overflow](https://stackoverflow.com/questions/9997891/how-to-improve-canvas-rendering-performance#:~:text=This%20is%20a%20Canvas%20based,1%2C000%2C000%20UIElements%20on%20a%20Canvas)).  
+- Yjs Documentation – enabling multiplayer editing with CRDTs for shared data ([Enabling Collaborative Editing - Slate](https://docs.slatejs.org/walkthroughs/07-enabling-collaborative-editing#:~:text=Enabling%20Collaborative%20Editing%20,Because)).  
+- SentinelOne, *"Microservices with Examples"* – microservice resilience (each service independent) ([Microservices Explained - All You Ever Wanted to Know](https://www.vsourz.com/blog/microservices-explained-all-you-ever-wanted-to-know-about-microservices-architecture/#:~:text=Microservices%20Explained%20,services%20will%20continue%20to)).  
+- Medium (HackenProof), *"How to use Slither for auditing smart contracts"* – Slither as popular Solidity analysis tool ([How to use Slither for auditing smart contracts - HackenProof](https://hackenproof.com/blog/for-hackers/how-to-use-slither-for-auditing-smart-contracts#:~:text=Slither%20is%20a%20Solidity%20static,tools%20for%20smart%20contracts%20auditing)).  
+- Alchemy, *"Slither - Solidity Tools"* – notes that Slither provides vulnerability and optimization detection ([Slither - Solidity Tools - Alchemy](https://www.alchemy.com/dapps/slither#:~:text=Slither%20,summaries%20to%20further%20developer%20comprehension)).  
+- Trail of Bits blog, *"Slither – a Solidity static analysis framework"* – mentions Slither’s API for custom analyses ([Slither – a Solidity static analysis framework | Trail of Bits Blog](https://blog.trailofbits.com/2018/10/19/slither-a-solidity-static-analysis-framework/#:~:text=Blog%20blog,about%20the%20code%20we%27re)).  
+- CloudThat, *"Harness KEDA to Autoscale Kubernetes based on queue length"* – using KEDA for scaling workers on queue metrics ([Remarkable Ways to Harness KEDA to Auto scale Your Kubernetes ...](https://www.cloudthat.com/resources/blog/remarkable-ways-to-harness-keda-to-auto-scale-your-kubernetes-workloads#:~:text=Remarkable%20Ways%20to%20Harness%20KEDA,KEDA%20can)).  
+- LogRocket Blog, *"Rate limiting in Node.js"* – mentions express-rate-limit for controlling request rate ([Understanding and implementing rate limiting in Node.js](https://blog.logrocket.com/rate-limiting-node-js/#:~:text=Understanding%20and%20implementing%20rate%20limiting,we%20will%20have%20to)).  
+- Queue-it Blog, *"Everything you need to know about load testing"* – Locust can simulate millions of users for load tests ([Everything you need to know about load testing](https://queue-it.com/blog/load-testing/#:~:text=Locust%3A%20A%20Python,Locust%20is%20user)).

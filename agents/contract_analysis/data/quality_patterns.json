@@ -1,0 +1,91 @@
+{
+    "complexity": {
+        "patterns": [
+            {
+                "pattern": "(if|for|while).*\\{[^\\}]*((if|for|while).*\\{[^\\}]*((if|for|while).*\\{))",
+                "description": "Control structures nested more than 2 levels deep",
+                "severity": "medium",
+                "category": "complexity",
+                "recommendation": "Refactor to reduce nesting depth",
+                "impact": "Reduces code readability and maintainability"
+            }
+        ]
+    },
+    "naming": {
+        "patterns": [
+            {
+                "pattern": "fn\\s+([A-Z][a-zA-Z0-9_]*|[a-z0-9_]*[A-Z][a-zA-Z0-9_]*)",
+                "description": "Function name doesn't follow snake_case convention",
+                "severity": "low",
+                "category": "naming",
+                "recommendation": "Use snake_case for function names",
+                "impact": "Reduces code consistency and readability"
+            },
+            {
+                "pattern": "struct\\s+([a-z][a-zA-Z0-9_]*)",
+                "description": "Struct name doesn't follow PascalCase convention",
+                "severity": "low",
+                "category": "naming",
+                "recommendation": "Use PascalCase for struct names",
+                "impact": "Reduces code consistency and readability"
+            }
+        ]
+    },
+    "documentation": {
+        "patterns": [
+            {
+                "pattern": "pub fn\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+                "without": "///.*\\n.*\\1",
+                "description": "Function lacks documentation",
+                "severity": "medium",
+                "category": "documentation",
+                "recommendation": "Add descriptive documentation for the function",
+                "impact": "Reduces code maintainability and usability"
+            },
+            {
+                "pattern": "pub struct\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+                "without": "///.*\\n.*\\1",
+                "description": "Struct lacks documentation",
+                "severity": "medium",
+                "category": "documentation",
+                "recommendation": "Add descriptive documentation for the struct",
+                "impact": "Reduces code maintainability and usability"
+            }
+        ]
+    },
+    "structure": {
+        "patterns": [
+            {
+                "pattern": "fn.*\\{([^\\}]*)\\}",
+                "condition": "lines > 50",
+                "description": "Function is too long",
+                "severity": "medium",
+                "category": "structure",
+                "recommendation": "Break down long functions into smaller, focused functions",
+                "impact": "Reduces code maintainability and testability"
+            },
+            {
+                "pattern": "struct.*\\{([^\\}]*)\\}",
+                "condition": "fields > 15",
+                "description": "Struct has too many fields",
+                "severity": "medium",
+                "category": "structure",
+                "recommendation": "Consider breaking down large structs into smaller, focused ones",
+                "impact": "Reduces code maintainability and increases complexity"
+            }
+        ]
+    },
+    "error_handling": {
+        "patterns": [
+            {
+                "pattern": "pub fn.*->.*Result<",
+                "without": "map_err|catch",
+                "description": "Function returns Result but doesn't provide detailed error handling",
+                "severity": "medium",
+                "category": "error_handling",
+                "recommendation": "Implement detailed error handling with specific error types",
+                "impact": "Reduces error traceability and debugging capability"
+            }
+        ]
+    }
+}

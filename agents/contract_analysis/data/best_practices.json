@@ -1,0 +1,162 @@
+{
+    "security": {
+        "access_control": {
+            "title": "Implement Strong Access Control",
+            "practices": [
+                "Always validate authority in privileged operations",
+                "Use PDA for program-derived authority",
+                "Implement proper ownership checks",
+                "Use custom errors for access violations"
+            ],
+            "examples": {
+                "good": [
+                    "require!(ctx.accounts.authority.key() == authority)",
+                    "require_keys_eq!(pda, expected_pda)"
+                ],
+                "bad": [
+                    "// Missing authority check",
+                    "account.data = new_data;"
+                ]
+            }
+        },
+        "validation": {
+            "title": "Input Validation",
+            "practices": [
+                "Validate all account constraints",
+                "Check numerical bounds",
+                "Verify account relationships",
+                "Validate PDAs"
+            ],
+            "examples": {
+                "good": [
+                    "#[account(constraint = balance >= amount)]",
+                    "require!(amount <= max_amount)"
+                ],
+                "bad": [
+                    "// Missing balance check",
+                    "transfer(amount)"
+                ]
+            }
+        }
+    },
+    "performance": {
+        "compute_units": {
+            "title": "Optimize Compute Unit Usage",
+            "practices": [
+                "Minimize CPI calls",
+                "Use efficient data structures",
+                "Cache frequently accessed values",
+                "Optimize loops"
+            ],
+            "examples": {
+                "good": [
+                    "let cached_authority = ctx.accounts.authority.key();",
+                    "vec![1, 2, 3].iter().take(5)"
+                ],
+                "bad": [
+                    "// Repeated CPI calls",
+                    "for i in very_large_array"
+                ]
+            }
+        },
+        "memory": {
+            "title": "Memory Management",
+            "practices": [
+                "Use appropriate data types",
+                "Minimize heap allocations",
+                "Use stack when possible",
+                "Pre-allocate vectors"
+            ],
+            "examples": {
+                "good": [
+                    "let mut buffer = [0u8; 32];",
+                    "Vec::with_capacity(expected_size)"
+                ],
+                "bad": [
+                    "let mut vec = Vec::new(); // Growing vec",
+                    "String::new() // Dynamic allocation"
+                ]
+            }
+        }
+    },
+    "reliability": {
+        "error_handling": {
+            "title": "Robust Error Handling",
+            "practices": [
+                "Use custom error types",
+                "Provide descriptive errors",
+                "Handle all error cases",
+                "Proper error propagation"
+            ],
+            "examples": {
+                "good": [
+                    "custom_err!(InvalidAmount)",
+                    "result.map_err(|e| prog_err!(CustomError))"
+                ],
+                "bad": [
+                    "panic!(\"Error\")",
+                    "// Missing error handling"
+                ]
+            }
+        },
+        "testing": {
+            "title": "Comprehensive Testing",
+            "practices": [
+                "Write unit tests",
+                "Include integration tests",
+                "Test error conditions",
+                "Simulate attacks"
+            ],
+            "examples": {
+                "good": [
+                    "#[test] fn test_transfer()",
+                    "assert_eq!(result, Expected)"
+                ],
+                "bad": [
+                    "// Missing tests",
+                    "// Incomplete test coverage"
+                ]
+            }
+        }
+    },
+    "maintainability": {
+        "documentation": {
+            "title": "Clear Documentation",
+            "practices": [
+                "Document public interfaces",
+                "Explain complex logic",
+                "Include usage examples",
+                "Document security assumptions"
+            ],
+            "examples": {
+                "good": [
+                    "/// Transfers tokens between accounts",
+                    "// SECURITY: requires signed authority"
+                ],
+                "bad": [
+                    "// No documentation",
+                    "fn complex_operation()"
+                ]
+            }
+        },
+        "code_structure": {
+            "title": "Clean Code Structure",
+            "practices": [
+                "Use meaningful names",
+                "Keep functions focused",
+                "Organize related code",
+                "Follow consistent style"
+            ],
+            "examples": {
+                "good": [
+                    "fn transfer_tokens()",
+                    "mod account_management"
+                ],
+                "bad": [
+                    "fn do_stuff()",
+                    "// Mixed concerns in one file"
+                ]
+            }
+        }
+    }
+}

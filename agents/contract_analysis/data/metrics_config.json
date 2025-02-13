@@ -1,0 +1,85 @@
+{
+    "complexity": {
+        "cyclomatic": {
+            "thresholds": {
+                "low": 5,
+                "medium": 10,
+                "high": 15
+            },
+            "description": "Measures code complexity based on control flow paths"
+        },
+        "cognitive": {
+            "thresholds": {
+                "low": 8,
+                "medium": 15,
+                "high": 25
+            },
+            "description": "Measures cognitive load of code based on nested structures and logical operators"
+        }
+    },
+    "loc": {
+        "comment_ratio": {
+            "thresholds": {
+                "low": 10,
+                "medium": 20,
+                "high": 30
+            },
+            "description": "Percentage of code that is comments"
+        },
+        "function_length": {
+            "thresholds": {
+                "low": 15,
+                "medium": 30,
+                "high": 50
+            },
+            "description": "Average lines of code per function"
+        }
+    },
+    "inheritance": {
+        "depth": {
+            "thresholds": {
+                "low": 2,
+                "medium": 3,
+                "high": 4
+            },
+            "description": "Maximum inheritance depth in contract hierarchy"
+        }
+    },
+    "functions": {
+        "params": {
+            "thresholds": {
+                "low": 3,
+                "medium": 5,
+                "high": 7
+            },
+            "description": "Average number of parameters per function"
+        },
+        "visibility": {
+            "recommendations": {
+                "public": "Consider if function really needs to be public",
+                "private": "Good for internal implementation details",
+                "internal": "Preferred for contract-only functions",
+                "external": "Efficient for public interface functions"
+            }
+        }
+    },
+    "variables": {
+        "visibility": {
+            "recommendations": {
+                "public": "Use getter functions instead when possible",
+                "private": "Preferred for internal state",
+                "internal": "Good for inherited contract access"
+            }
+        }
+    },
+    "dependencies": {
+        "total": {
+            "thresholds": {
+                "low": 5,
+                "medium": 10,
+                "high": 15
+            },
+            "description": "Total number of external dependencies"
+        }
+    }
+}

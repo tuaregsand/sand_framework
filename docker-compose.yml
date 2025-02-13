@@ -1,0 +1,159 @@
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: .
+      dockerfile: api_gateway/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - BROKER_URL=${BROKER_URL}
+      - RESULT_BACKEND=${RESULT_BACKEND}
+      - API_HOST=${API_HOST}
+      - API_PORT=${API_PORT}
+    depends_on:
+      - postgres
+      - rabbitmq
+      - redis
+    networks:
+      - sandframework
+
+  web3_worker:
+    build:
+      context: .
+      dockerfile: agents/Dockerfile
+    command: celery -A agents.tasks worker -Q web3_agent_queue --loglevel=info
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - BROKER_URL=${BROKER_URL}
+      - RESULT_BACKEND=${RESULT_BACKEND}
+      - LLM_PROVIDER=${LLM_PROVIDER}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DEEPSEEK_ENDPOINT=${DEEPSEEK_ENDPOINT}
+    depends_on:
+      - rabbitmq
+      - redis
+    networks:
+      - sandframework
+
+  analytics_worker:
+    build:
+      context: .
+      dockerfile: agents/Dockerfile
+    command: celery -A agents.tasks worker -Q analytics_agent_queue --loglevel=info
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - BROKER_URL=${BROKER_URL}
+      - RESULT_BACKEND=${RESULT_BACKEND}
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
+    depends_on:
+      - rabbitmq
+      - redis
+    networks:
+      - sandframework
+
+  discord_bot:
+    build:
+      context: .
+      dockerfile: discord_bot/Dockerfile
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}
+      - API_BASE_URL=${API_BASE_URL}
+    depends_on:
+      - api
+    networks:
+      - sandframework
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=sandframework
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - sandframework
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    networks:
+      - sandframework
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - sandframework
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    networks:
+      - sandframework
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - sandframework
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - sandframework
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - sandframework
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  sandframework:
+    driver: bridge

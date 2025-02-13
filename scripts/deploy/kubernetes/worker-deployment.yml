@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web3-worker
+  labels:
+    app: web3-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web3-worker
+  template:
+    metadata:
+      labels:
+        app: web3-worker
+    spec:
+      containers:
+      - name: worker
+        image: sandframework-worker:latest
+        command: ["celery", "-A", "agents.tasks", "worker", "--loglevel=info"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: database-url
+        - name: BROKER_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: broker-url
+        - name: LLM_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: llm-provider
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - celery
+            - -A
+            - agents.tasks
+            - inspect
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 30

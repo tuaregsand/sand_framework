@@ -1,0 +1,92 @@
+{
+    "complexity": {
+        "cyclomatic_complexity": {
+            "low": 5,
+            "medium": 10,
+            "high": 15,
+            "description": "Measure of code paths through a function"
+        },
+        "cognitive_complexity": {
+            "low": 8,
+            "medium": 15,
+            "high": 25,
+            "description": "Measure of code understandability"
+        }
+    },
+    "size": {
+        "loc": {
+            "low": 200,
+            "medium": 500,
+            "high": 1000,
+            "description": "Total lines of code"
+        },
+        "lloc": {
+            "low": 100,
+            "medium": 200,
+            "high": 400,
+            "description": "Logical lines of code"
+        },
+        "function_count": {
+            "low": 10,
+            "medium": 20,
+            "high": 30,
+            "description": "Number of functions in contract"
+        }
+    },
+    "maintainability": {
+        "comment_ratio": {
+            "low": 0.1,
+            "medium": 0.2,
+            "high": 0.3,
+            "description": "Ratio of comments to code"
+        },
+        "avg_function_length": {
+            "low": 15,
+            "medium": 30,
+            "high": 50,
+            "description": "Average lines per function"
+        }
+    },
+    "security": {
+        "critical_operations": {
+            "low": 2,
+            "medium": 5,
+            "high": 10,
+            "description": "Number of critical operations"
+        },
+        "authority_checks": {
+            "low": 1,
+            "medium": 3,
+            "high": 5,
+            "description": "Number of authority validations"
+        }
+    },
+    "gas": {
+        "instruction_count": {
+            "low": 5,
+            "medium": 10,
+            "high": 20,
+            "description": "Number of Solana instructions"
+        },
+        "account_access": {
+            "low": 8,
+            "medium": 15,
+            "high": 25,
+            "description": "Number of account accesses"
+        }
+    },
+    "testing": {
+        "test_coverage": {
+            "low": 0.5,
+            "medium": 0.8,
+            "high": 0.9,
+            "description": "Ratio of test functions to total functions"
+        },
+        "assert_count": {
+            "low": 10,
+            "medium": 30,
+            "high": 50,
+            "description": "Number of assertions in tests"
+        }
+    }
+}

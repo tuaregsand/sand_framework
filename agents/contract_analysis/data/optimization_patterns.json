@@ -1,0 +1,82 @@
+{
+    "compute": {
+        "patterns": [
+            {
+                "pattern": "sort|filter|map",
+                "description": "Array operation detected that may consume excessive compute units",
+                "savings": 1000,
+                "difficulty": "medium",
+                "recommendation": "Consider using more efficient data structures or algorithms"
+            },
+            {
+                "pattern": "(\\w+\\s*=\\s*[^;]+;).*\\1",
+                "description": "Same computation performed multiple times",
+                "savings": 500,
+                "difficulty": "easy",
+                "recommendation": "Cache the computed value in a variable"
+            }
+        ]
+    },
+    "data_structure": {
+        "patterns": [
+            {
+                "pattern": "Vec<",
+                "description": "Vector data structure may consume more compute units than necessary",
+                "savings": 800,
+                "difficulty": "medium",
+                "recommendation": "Consider using fixed-size arrays or more efficient data structures"
+            },
+            {
+                "pattern": "Vec<.*Vec<",
+                "description": "Nested vectors detected which may be inefficient",
+                "savings": 1200,
+                "difficulty": "hard",
+                "recommendation": "Flatten data structures or use alternative representations"
+            }
+        ]
+    },
+    "account_access": {
+        "patterns": [
+            {
+                "pattern": "ctx\\.accounts\\.(\\w+)",
+                "description": "Account is looked up multiple times",
+                "savings": 300,
+                "difficulty": "easy",
+                "recommendation": "Cache account reference in a local variable"
+            }
+        ]
+    },
+    "instruction": {
+        "patterns": [
+            {
+                "pattern": "invoke.*invoke",
+                "description": "Multiple CPI calls that might be combinable",
+                "savings": 2000,
+                "difficulty": "hard",
+                "recommendation": "Consider combining multiple instructions into a single one"
+            }
+        ]
+    },
+    "state_access": {
+        "patterns": [
+            {
+                "pattern": "account\\.(\\w+)",
+                "description": "Field is read multiple times",
+                "savings": 400,
+                "difficulty": "easy",
+                "recommendation": "Cache state values in local variables"
+            }
+        ]
+    },
+    "memory": {
+        "patterns": [
+            {
+                "pattern": "String::with_capacity|Vec::with_capacity",
+                "description": "Pre-allocated memory space which might be optimizable",
+                "savings": 600,
+                "difficulty": "medium",
+                "recommendation": "Review and optimize memory allocation sizes"
+            }
+        ]
+    }
+}

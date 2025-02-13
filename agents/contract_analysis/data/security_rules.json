@@ -1,0 +1,46 @@
+{
+    "rules": [
+        {
+            "id": "REENTRANCY",
+            "name": "Reentrancy Vulnerability",
+            "description": "A function can be re-entered before the first invocation is finished",
+            "pattern": "transfer|call{value:|send|invoke",
+            "severity": "HIGH"
+        },
+        {
+            "id": "ACCESS_CONTROL",
+            "name": "Missing Access Control",
+            "description": "Function lacks proper access control checks",
+            "pattern": "initialize|admin|owner|upgrade",
+            "severity": "HIGH"
+        },
+        {
+            "id": "INPUT_VALIDATION",
+            "name": "Missing Input Validation",
+            "description": "Function parameters are not properly validated",
+            "pattern": "pub struct|pub fn.*\\([^)]*\\)",
+            "severity": "MEDIUM"
+        },
+        {
+            "id": "ARITHMETIC",
+            "name": "Arithmetic Overflow/Underflow",
+            "description": "potential arithmetic operation without SafeMath",
+            "pattern": "[+\\-*/%](?!=)",
+            "severity": "HIGH"
+        },
+        {
+            "id": "ERROR_HANDLING",
+            "name": "Insufficient Error Handling",
+            "description": "Missing or improper error handling",
+            "pattern": "\\?|Ok\\(\\)|Err\\(",
+            "severity": "MEDIUM"
+        },
+        {
+            "id": "PDA_VALIDATION",
+            "name": "Missing PDA Validation",
+            "description": "Program Derived Address (PDA) is not properly validated",
+            "pattern": "find_program_address|create_program_address",
+            "severity": "HIGH"
+        }
+    ]
+}

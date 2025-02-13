@@ -1,0 +1,32 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="sandframework",
+    version="0.1.0",
+    packages=find_packages(),
+    install_requires=[
+        "fastapi",
+        "uvicorn",
+        "python-dotenv",
+        "pydantic",
+        "sqlalchemy",
+        "asyncpg",
+        "psycopg2-binary",
+        "python-jose[cryptography]",
+        "passlib[bcrypt]",
+        "celery",
+        "redis",
+        "openai",
+        "anthropic",
+        "requests",
+        "textblob",
+        "transformers",
+        "torch",
+        "discord.py",
+        "pytest",
+        "pytest-asyncio",
+        "httpx",
+        "sentry-sdk",
+        "prometheus-client",
+    ],
+)
