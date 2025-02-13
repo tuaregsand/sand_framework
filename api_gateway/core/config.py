@@ -37,6 +37,12 @@ def debug_env():
     if found_vars:
         logger.error(f"Found JWT secret with these names: {found_vars}")
 
+def fix_database_url(url: str) -> str:
+    """Convert postgresql:// to postgresql+asyncpg:// for async support"""
+    if url.startswith('postgresql://'):
+        return url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+    return url
+
 class Settings(BaseSettings):
     """Application settings."""
     
@@ -146,11 +152,19 @@ class Settings(BaseSettings):
                 logger.error("Found JWT_SECRET in environment variables")
                 break
         
+        # Fix DATABASE_URL if present in environment
+        if 'DATABASE_URL' in os.environ:
+            os.environ['DATABASE_URL'] = fix_database_url(os.environ['DATABASE_URL'])
+            logger.error(f"Using database URL: {os.environ['DATABASE_URL']}")
+        
         super().__init__(**kwargs)
         
         # Validate after initialization
         if not self.JWT_SECRET:
             raise ValueError("JWT_SECRET environment variable is required but not set")
+        
+        # Ensure DATABASE_URL is async compatible
+        self.DATABASE_URL = fix_database_url(self.DATABASE_URL)
 
 @lru_cache()
 def get_settings() -> Settings:
