@@ -134,10 +134,5 @@ async def general_exception_handler(request, exc):
         }
     )
 
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host=settings.API_HOST,
-        port=settings.API_PORT,
-        reload=settings.ENVIRONMENT == "development"
-    )
+# Export the app for ASGI servers
+app = app
