@@ -3,7 +3,7 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import datetime, timedelta
-import jwt
+from jose import jwt, JWTError
 import secrets
 import logging
 from typing import Optional
@@ -65,7 +65,7 @@ def create_jwt_token(
     return jwt.encode(
         to_encode,
         settings.JWT_SECRET,
-        algorithm="HS256"
+        algorithm=settings.JWT_ALGORITHM
     )
 
 def verify_jwt_token(token: str) -> dict:
@@ -74,15 +74,10 @@ def verify_jwt_token(token: str) -> dict:
         payload = jwt.decode(
             token,
             settings.JWT_SECRET,
-            algorithms=["HS256"]
+            algorithms=[settings.JWT_ALGORITHM]
         )
         return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired"
-        )
-    except jwt.JWTError:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
