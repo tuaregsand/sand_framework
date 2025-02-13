@@ -17,12 +17,12 @@ class Settings(BaseSettings):
     API_KEY: Optional[str] = None
     
     # Environment
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = ENVIRONMENT == "development"
+    ENVIRONMENT: str = "production"  
+    DEBUG: bool = False
     TESTING: Optional[bool] = False
     
     # Security
-    JWT_SECRET: str
+    JWT_SECRET: str = os.environ.get('JWT_SECRET')  
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     CORS_ORIGINS: List[str] = ["*"]
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     DB_POOL_SIZE: int = 5
     DB_MAX_OVERFLOW: int = 10
-    DB_ECHO: bool = DEBUG
+    DB_ECHO: bool = False
     
     @property
     def DATABASE_HOST(self) -> str:
@@ -49,8 +49,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
     
     # Contract Analysis
-    MAX_CONTRACT_SIZE_KB: int = 1024  # 1MB
-    MAX_ANALYSIS_TIME_SECONDS: int = 300  # 5 minutes
+    MAX_CONTRACT_SIZE_KB: int = 1024  
+    MAX_ANALYSIS_TIME_SECONDS: int = 300  
     ANALYSIS_TIMEOUT_SECONDS: int = 30
     
     # Smart Contract Analysis Settings
@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     SOLSCAN_API_KEY: Optional[str] = None
     
     # File Storage
-    STORAGE_BACKEND: str = "local"  # Options: local, s3
+    STORAGE_BACKEND: str = "local"  
     STORAGE_PATH: str = "./storage"
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     
     # Cache Settings
     CACHE_TTL_SECONDS: int = 300
-    CACHE_BACKEND: str = "memory"  # Options: memory, redis
+    CACHE_BACKEND: str = "memory"  
     
     # Worker Settings
     WORKER_CONCURRENCY: int = 2
@@ -94,41 +94,16 @@ class Settings(BaseSettings):
     
     class Config:
         case_sensitive = True
-        env_file = None  # Don't try to read from .env file in production
+        env_file = None  
 
     def __init__(self, **kwargs):
-        # Log all environment variables for debugging
-        logger.info("Environment variables available:")
-        for key, value in os.environ.items():
-            # Mask sensitive values
-            if any(sensitive in key.lower() for sensitive in ['secret', 'password', 'key']):
-                logger.info(f"{key}: ***masked***")
-            else:
-                logger.info(f"{key}: {value}")
+        jwt_secret = os.environ.get('JWT_SECRET')
+        logger.info(f"JWT_SECRET from os.environ: {'present' if jwt_secret else 'missing'}")
+        if not jwt_secret:
+            logger.info("Available environment variables:")
+            for key in os.environ:
+                logger.info(f"- {key}")
         super().__init__(**kwargs)
-
-    def get_database_url(self) -> str:
-        """Get database URL."""
-        return self.DATABASE_URL
-
-    def get_redis_url(self) -> Optional[str]:
-        """Get Redis URL if configured."""
-        return self.REDIS_URL
-
-    @property
-    def is_production(self) -> bool:
-        """Check if running in production environment."""
-        return self.ENVIRONMENT == "production"
-
-    @property
-    def is_development(self) -> bool:
-        """Check if running in development environment."""
-        return self.ENVIRONMENT == "development"
-
-    @property
-    def is_testing(self) -> bool:
-        """Check if running in test environment."""
-        return bool(self.TESTING)
 
 @lru_cache()
 def get_settings() -> Settings:
