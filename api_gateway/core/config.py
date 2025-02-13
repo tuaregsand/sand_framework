@@ -5,6 +5,7 @@ from functools import lru_cache
 from urllib.parse import urlparse
 import logging
 import sys
+import json
 
 # Configure root logger to print to stderr
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
@@ -129,19 +130,25 @@ class Settings(BaseSettings):
         # Run debug function before anything else
         debug_env()
         
-        # Log environment variables
-        env_vars = {k.strip(): v for k, v in os.environ.items()}
-        logger.error(f"Environment variables: {list(env_vars.keys())}")
+        # Log all environment variables
+        logger.error("=== Environment Variables ===")
+        for key in sorted(os.environ.keys()):
+            if 'SECRET' in key or 'KEY' in key:
+                logger.error(f"{key}: [hidden]")
+            else:
+                logger.error(f"{key}: {os.environ[key]}")
+        logger.error("=== End Environment Variables ===")
         
-        # Try to get JWT_SECRET with and without space
-        jwt_value = env_vars.get('JWT_SECRET')
-        if jwt_value:
-            kwargs['JWT_SECRET'] = jwt_value.strip()
-            logger.error("Found JWT_SECRET in environment")
+        # Try to get JWT_SECRET, handling the space issue
+        for key in os.environ:
+            if key.strip() == 'JWT_SECRET':
+                kwargs['JWT_SECRET'] = os.environ[key].strip()
+                logger.error("Found JWT_SECRET in environment variables")
+                break
         
         super().__init__(**kwargs)
         
-        # Now validate JWT_SECRET
+        # Validate after initialization
         if not self.JWT_SECRET:
             raise ValueError("JWT_SECRET environment variable is required but not set")
 
