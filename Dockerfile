@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the entire project for installation
+# Copy the entire project
 COPY . .
 
 # Install the package and dependencies
@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -e .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
 # Expose the port the app runs on
 EXPOSE 8000
