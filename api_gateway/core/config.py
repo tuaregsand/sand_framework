@@ -1,11 +1,41 @@
 from typing import List, Optional
+import json
 from pydantic_settings import BaseSettings
 import os
 from functools import lru_cache
 from urllib.parse import urlparse
 import logging
+import sys
 
+# Configure root logger to print to stderr
+logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 logger = logging.getLogger(__name__)
+
+def debug_env():
+    """Debug function to print all environment info"""
+    debug_info = {
+        "all_env_vars": dict(os.environ),
+        "env_var_names": list(os.environ.keys()),
+        "jwt_secret_present": "JWT_SECRET" in os.environ,
+        "jwt_secret_value_length": len(os.environ.get("JWT_SECRET", "")) if "JWT_SECRET" in os.environ else 0,
+        "python_path": sys.path,
+        "current_dir": os.getcwd(),
+    }
+    
+    # Print each piece of info separately for better logging
+    logger.error("=== DEBUG ENVIRONMENT INFO ===")
+    logger.error(f"All environment variable names: {json.dumps(list(os.environ.keys()), indent=2)}")
+    logger.error(f"JWT_SECRET present: {debug_info['jwt_secret_present']}")
+    logger.error(f"JWT_SECRET length: {debug_info['jwt_secret_value_length']}")
+    logger.error(f"Current directory: {debug_info['current_dir']}")
+    logger.error(f"Python path: {json.dumps(debug_info['python_path'], indent=2)}")
+    logger.error("=== END DEBUG INFO ===")
+    
+    # Also check for case variations
+    possible_names = ["JWT_SECRET", "jwt_secret", "Jwt_Secret", "jwt-secret", "JWT-SECRET"]
+    found_vars = [name for name in possible_names if name in os.environ]
+    if found_vars:
+        logger.error(f"Found JWT secret with these names: {found_vars}")
 
 class Settings(BaseSettings):
     """Application settings."""
@@ -22,7 +52,7 @@ class Settings(BaseSettings):
     TESTING: Optional[bool] = False
     
     # Security
-    JWT_SECRET: str  # Required, no default value
+    JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     CORS_ORIGINS: List[str] = ["*"]
@@ -35,7 +65,6 @@ class Settings(BaseSettings):
     
     @property
     def DATABASE_HOST(self) -> str:
-        """Extract database host from DATABASE_URL."""
         parsed = urlparse(self.DATABASE_URL)
         return parsed.hostname or "localhost"
     
@@ -95,17 +124,11 @@ class Settings(BaseSettings):
     class Config:
         case_sensitive = True
         env_file = None
-        env_prefix = ""  # No prefix for environment variables
+        env_prefix = ""
 
     def __init__(self, **kwargs):
-        # Log available environment variables
-        env_vars = list(os.environ.keys())
-        logger.info(f"Environment variables: {', '.join(env_vars)}")
-        
-        # Check if JWT_SECRET is in environment
-        if 'JWT_SECRET' not in os.environ:
-            raise ValueError("JWT_SECRET environment variable is required but not set")
-            
+        # Run debug function before anything else
+        debug_env()
         super().__init__(**kwargs)
 
 @lru_cache()
