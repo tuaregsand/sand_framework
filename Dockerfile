@@ -7,10 +7,14 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy requirements and install dependencies first
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
 # Copy the entire project
 COPY . .
 
-# Install the package and dependencies
+# Install the package in editable mode
 RUN pip install --no-cache-dir -e .
 
 # Set environment variables
@@ -21,4 +25,4 @@ ENV PYTHONPATH=/app
 EXPOSE 8000
 
 # Command to run the application
-CMD ["uvicorn", "api_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "api_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
