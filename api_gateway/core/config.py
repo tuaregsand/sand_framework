@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     TESTING: Optional[bool] = False
     
     # Security
-    JWT_SECRET: str
+    JWT_SECRET: str = os.environ.get("JWT_SECRET", "")  # Get from environment with empty default
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     CORS_ORIGINS: List[str] = ["*"]
@@ -129,7 +129,20 @@ class Settings(BaseSettings):
     def __init__(self, **kwargs):
         # Run debug function before anything else
         debug_env()
+        
+        # Print environment info
+        env_vars = list(os.environ.keys())
+        logger.error(f"Available environment variables: {', '.join(env_vars)}")
+        logger.error(f"JWT_SECRET exists: {'JWT_SECRET' in os.environ}")
+        if 'JWT_SECRET' in os.environ:
+            logger.error(f"JWT_SECRET length: {len(os.environ['JWT_SECRET'])}")
+        
+        # Call parent init
         super().__init__(**kwargs)
+        
+        # Validate JWT_SECRET after init
+        if not self.JWT_SECRET:
+            raise ValueError("JWT_SECRET is required and cannot be empty")
 
 @lru_cache()
 def get_settings() -> Settings:
