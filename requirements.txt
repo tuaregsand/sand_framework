@@ -6,9 +6,9 @@ pydantic==2.5.2
 pydantic-settings==2.1.0
 sqlalchemy==2.0.23
 asyncpg==0.29.0
-psycopg2-binary==2.9.9
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+pytz==2023.3
 
 # Agents & Task Queue
 celery==5.3.6
