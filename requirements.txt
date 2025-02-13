@@ -38,6 +38,10 @@ opentelemetry-api==1.21.0
 opentelemetry-sdk==1.21.0
 opentelemetry-instrumentation-fastapi==0.42b0
 opentelemetry-exporter-otlp==1.21.0
+opentelemetry-instrumentation==0.42b0
+opentelemetry-proto==1.21.0
+grpcio==1.59.0
+protobuf==4.24.3
 
 # Additional Dependencies
 radon==6.0.1

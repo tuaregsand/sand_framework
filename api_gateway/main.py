@@ -13,6 +13,7 @@ from api_gateway.routes import analytics, devagent, system
 from api_gateway.routes.metrics import router as metrics_router
 from api_gateway.db import init_db
 from api_gateway.models import schemas
+from api_gateway.core.monitoring import setup_monitoring
 
 # Configure logging
 logging.basicConfig(
@@ -49,8 +50,11 @@ async def startup_event():
     try:
         await init_db()
         logger.info("Database initialized successfully")
+        # Setup monitoring after database initialization
+        setup_monitoring(app)
+        logger.info("Monitoring setup completed")
     except Exception as e:
-        logger.error(f"Failed to initialize database: {str(e)}")
+        logger.error(f"Error during startup: {str(e)}")
         raise
 
 @app.on_event("shutdown")
