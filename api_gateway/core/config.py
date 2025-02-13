@@ -92,8 +92,8 @@ class Settings(BaseSettings):
     WORKER_MAX_TASKS_PER_CHILD: int = 100
     
     class Config:
-        env_file = ".env"
         case_sensitive = True
+        env_file = None  # Don't try to read from .env file in production
 
     def get_database_url(self) -> str:
         """Get database URL."""
@@ -120,10 +120,7 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    """Create cached instance of settings.
-    
-    This function is cached to avoid reading environment variables on every call.
-    """
+    """Create cached instance of settings."""
     return Settings()
 
 # Global instance
