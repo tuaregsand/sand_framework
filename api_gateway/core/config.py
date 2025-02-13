@@ -23,19 +23,19 @@ def debug_env():
     }
     
     # Print each piece of info separately for better logging
-    logger.error("=== DEBUG ENVIRONMENT INFO ===")
-    logger.error(f"All environment variable names: {json.dumps(list(os.environ.keys()), indent=2)}")
-    logger.error(f"JWT_SECRET present: {debug_info['jwt_secret_present']}")
-    logger.error(f"JWT_SECRET length: {debug_info['jwt_secret_value_length']}")
-    logger.error(f"Current directory: {debug_info['current_dir']}")
-    logger.error(f"Python path: {json.dumps(debug_info['python_path'], indent=2)}")
-    logger.error("=== END DEBUG INFO ===")
+    logger.info("=== DEBUG ENVIRONMENT INFO ===")
+    logger.info(f"All environment variable names: {json.dumps(list(os.environ.keys()), indent=2)}")
+    logger.info(f"JWT_SECRET present: {debug_info['jwt_secret_present']}")
+    logger.info(f"JWT_SECRET length: {debug_info['jwt_secret_value_length']}")
+    logger.info(f"Current directory: {debug_info['current_dir']}")
+    logger.info(f"Python path: {json.dumps(debug_info['python_path'], indent=2)}")
+    logger.info("=== END DEBUG INFO ===")
     
     # Also check for case variations
     possible_names = ["JWT_SECRET", "jwt_secret", "Jwt_Secret", "jwt-secret", "JWT-SECRET"]
     found_vars = [name for name in possible_names if name in os.environ]
     if found_vars:
-        logger.error(f"Found JWT secret with these names: {found_vars}")
+        logger.info(f"Found JWT secret with these names: {found_vars}")
 
 def fix_database_url(url: str) -> str:
     """Convert postgresql:// to postgresql+asyncpg:// for async support"""
@@ -138,25 +138,25 @@ class Settings(BaseSettings):
         debug_env()
         
         # Log all environment variables
-        logger.error("=== Environment Variables ===")
+        logger.info("=== Environment Variables ===")
         for key in sorted(os.environ.keys()):
             if 'SECRET' in key or 'KEY' in key:
-                logger.error(f"{key}: [hidden]")
+                logger.info(f"{key}: [hidden]")
             else:
-                logger.error(f"{key}: {os.environ[key]}")
-        logger.error("=== End Environment Variables ===")
+                logger.info(f"{key}: {os.environ[key]}")
+        logger.info("=== End Environment Variables ===")
         
         # Try to get JWT_SECRET, handling the space issue
         for key in os.environ:
             if key.strip() == 'JWT_SECRET':
                 kwargs['JWT_SECRET'] = os.environ[key].strip()
-                logger.error("Found JWT_SECRET in environment variables")
+                logger.info("Found JWT_SECRET in environment variables")
                 break
         
         # Fix DATABASE_URL if present in environment
         if 'DATABASE_URL' in os.environ:
             os.environ['DATABASE_URL'] = fix_database_url(os.environ['DATABASE_URL'])
-            logger.error(f"Using database URL: {os.environ['DATABASE_URL']}")
+            logger.info(f"Using database URL: {os.environ['DATABASE_URL']}")
         
         super().__init__(**kwargs)
         
