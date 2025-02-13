@@ -17,12 +17,12 @@ class Settings(BaseSettings):
     API_KEY: Optional[str] = None
     
     # Environment
-    ENVIRONMENT: str = "production"  
+    ENVIRONMENT: str = "production"
     DEBUG: bool = False
     TESTING: Optional[bool] = False
     
     # Security
-    JWT_SECRET: str = os.environ.get('JWT_SECRET')  
+    JWT_SECRET: str  # Required, no default value
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     CORS_ORIGINS: List[str] = ["*"]
@@ -49,8 +49,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
     
     # Contract Analysis
-    MAX_CONTRACT_SIZE_KB: int = 1024  
-    MAX_ANALYSIS_TIME_SECONDS: int = 300  
+    MAX_CONTRACT_SIZE_KB: int = 1024
+    MAX_ANALYSIS_TIME_SECONDS: int = 300
     ANALYSIS_TIMEOUT_SECONDS: int = 30
     
     # Smart Contract Analysis Settings
@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     SOLSCAN_API_KEY: Optional[str] = None
     
     # File Storage
-    STORAGE_BACKEND: str = "local"  
+    STORAGE_BACKEND: str = "local"
     STORAGE_PATH: str = "./storage"
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     
     # Cache Settings
     CACHE_TTL_SECONDS: int = 300
-    CACHE_BACKEND: str = "memory"  
+    CACHE_BACKEND: str = "memory"
     
     # Worker Settings
     WORKER_CONCURRENCY: int = 2
@@ -94,15 +94,18 @@ class Settings(BaseSettings):
     
     class Config:
         case_sensitive = True
-        env_file = None  
+        env_file = None
+        env_prefix = ""  # No prefix for environment variables
 
     def __init__(self, **kwargs):
-        jwt_secret = os.environ.get('JWT_SECRET')
-        logger.info(f"JWT_SECRET from os.environ: {'present' if jwt_secret else 'missing'}")
-        if not jwt_secret:
-            logger.info("Available environment variables:")
-            for key in os.environ:
-                logger.info(f"- {key}")
+        # Log available environment variables
+        env_vars = list(os.environ.keys())
+        logger.info(f"Environment variables: {', '.join(env_vars)}")
+        
+        # Check if JWT_SECRET is in environment
+        if 'JWT_SECRET' not in os.environ:
+            raise ValueError("JWT_SECRET environment variable is required but not set")
+            
         super().__init__(**kwargs)
 
 @lru_cache()
