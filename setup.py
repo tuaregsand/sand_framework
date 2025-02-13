@@ -43,6 +43,7 @@ setup(
         "protobuf==4.24.3",
         "radon==6.0.1",
         "slowapi==0.1.9",
+        "psutil==5.9.5",
     ],
     python_requires=">=3.11",
 )
