@@ -1,4 +1,4 @@
-# Solana Multi-Agent System
+# Sand Framework
 
 A distributed multi-agent system for Web3 development and Solana analytics, featuring AI-powered development assistance, real-time analytics, and Discord integration.
 
@@ -108,3 +108,134 @@ pytest
 ## License
 
 MIT License
+
+# Sand Framework
+
+A comprehensive smart contract analysis and development platform built for the Solana ecosystem. Sand Framework provides real-time security scanning, gas optimization, and collaborative development features through an intuitive infinite canvas interface.
+
+## 🌟 Features
+
+- **Smart Contract Analysis**
+  - Real-time security vulnerability scanning
+  - Gas optimization recommendations
+  - Code quality metrics and best practices
+  - Automated fix suggestions
+
+- **Real-time Collaboration**
+  - Infinite canvas interface for contract visualization
+  - Multi-user real-time editing
+  - Live comments and annotations
+  - Project-based organization
+
+- **Solana Integration**
+  - Live contract monitoring
+  - Real-time state updates
+  - Transaction tracking
+  - Performance metrics
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL
+- Redis
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/tuaregsand/sand_framework.git
+cd sand_framework
+```
+
+2. Set up the environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+3. Configure environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. Initialize the database:
+```bash
+# Make sure PostgreSQL is running
+python -m api_gateway.db init
+```
+
+5. Start the services:
+```bash
+# Start API Gateway
+uvicorn api_gateway.main:app --reload
+
+# Start Celery Worker
+celery -A agents.tasks worker --loglevel=info
+```
+
+## 🏗️ Architecture
+
+The Sand Framework consists of several microservices:
+
+- **API Gateway**: FastAPI-based REST API
+- **Analysis Workers**: Celery-based contract analysis engine
+- **Monitoring Service**: Real-time Solana contract monitoring
+- **Frontend**: Next.js-based infinite canvas interface
+
+## 📚 API Documentation
+
+API documentation is available at `/docs` when running the API Gateway. Key endpoints include:
+
+- `/dev/analyze`: Submit contracts for analysis
+- `/dev/projects`: Manage development projects
+- `/metrics`: Get analysis metrics and results
+- `/analytics`: Access real-time analytics
+
+## 🧪 Testing
+
+Run the test suite:
+```bash
+pytest tests/
+```
+
+For performance testing:
+```bash
+python -m tests.performance.locustfile
+```
+
+## 🔐 Security
+
+- All API endpoints require authentication
+- Real-time updates use secure WebSocket connections
+- Sensitive data is encrypted at rest
+- Regular security audits and updates
+
+## 📈 Roadmap
+
+- [ ] AI-powered code suggestions
+- [ ] Cross-chain contract analysis
+- [ ] Advanced visualization features
+- [ ] Integration with popular IDEs
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Solana Foundation
+- OpenZeppelin
+- Trail of Bits
+
+## 📞 Support
+
+For support, please open an issue or contact the maintainers at support@sandframework.dev
