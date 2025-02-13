@@ -36,24 +36,38 @@ ANALYSIS_DURATION = Histogram(
 
 def setup_monitoring(app):
     """Setup monitoring for the application."""
-    # Configure Sentry
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        traces_sample_rate=1.0,
-        profiles_sample_rate=1.0,
-    )
+    # Configure Sentry if DSN is provided
+    if settings.SENTRY_DSN:
+        logger.info("Configuring Sentry...")
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            traces_sample_rate=1.0,
+            profiles_sample_rate=1.0,
+        )
+        logger.info("Sentry configured successfully")
+    else:
+        logger.info("Skipping Sentry setup - no DSN provided")
     
-    # Configure OpenTelemetry
-    trace.set_tracer_provider(TracerProvider())
-    otlp_exporter = OTLPSpanExporter(endpoint=settings.OTLP_ENDPOINT)
-    span_processor = BatchSpanProcessor(otlp_exporter)
-    trace.get_tracer_provider().add_span_processor(span_processor)
-    
-    # Instrument FastAPI
-    FastAPIInstrumentor.instrument_app(app)
+    # Configure OpenTelemetry if endpoint is provided
+    if settings.OTLP_ENDPOINT:
+        logger.info("Configuring OpenTelemetry...")
+        trace.set_tracer_provider(TracerProvider())
+        otlp_exporter = OTLPSpanExporter(endpoint=settings.OTLP_ENDPOINT)
+        span_processor = BatchSpanProcessor(otlp_exporter)
+        trace.get_tracer_provider().add_span_processor(span_processor)
+        
+        # Instrument FastAPI
+        FastAPIInstrumentor.instrument_app(app)
+        logger.info("OpenTelemetry configured successfully")
+    else:
+        logger.info("Skipping OpenTelemetry setup - no endpoint provided")
     
     # Start Prometheus metrics server
-    start_http_server(settings.METRICS_PORT)
+    try:
+        start_http_server(settings.METRICS_PORT)
+        logger.info(f"Prometheus metrics server started on port {settings.METRICS_PORT}")
+    except Exception as e:
+        logger.warning(f"Failed to start Prometheus metrics server: {str(e)}")
     
     logger.info("Monitoring setup completed")
 

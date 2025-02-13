@@ -93,15 +93,16 @@ class Settings(BaseSettings):
     GAS_OPTIMIZATION_ENABLED: bool = True
     CODE_QUALITY_CHECK_ENABLED: bool = True
     
+    # Monitoring Settings
+    SENTRY_DSN: Optional[str] = None
+    OTLP_ENDPOINT: Optional[str] = None
+    METRICS_PORT: int = 9090
+    
     # LLM Settings
     LLM_PROVIDER: str = "openai"
     OPENAI_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None
     DEEPSEEK_ENDPOINT: Optional[str] = None
-    
-    # Metrics and Monitoring
-    ENABLE_METRICS: bool = True
-    METRICS_PORT: int = 9090
     
     # Logging
     LOG_LEVEL: str = "INFO"
