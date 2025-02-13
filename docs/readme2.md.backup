@@ -1,0 +1,417 @@
+Sand Framework
+Sand Framework is a comprehensive platform for Solana developers and Web3 enthusiasts, combining a distributed multi-agent system with AI-driven tools, automated smart contract analysis, real-time blockchain analytics, and collaborative features. It features an AI-powered development assistant, automated security scanning for smart contracts, real-time analytics (price tracking & sentiment), and seamless Discord integration – all architected for scalability and ease of use​
+GITHUB.COM
+.
+Introduction
+Sand Framework is designed to streamline Web3 development on Solana by providing developers and traders with an integrated suite of tools:
+AI Co-Pilot for Solana – Leverages Large Language Models (OpenAI, Anthropic, or DeepSeek) to assist in coding, debugging, and answering Solana development queries in real-time​
+GITHUB.COM
+​
+GITHUB.COM
+.
+Automated Smart Contract Analysis – A built-in analysis engine that scans Solana smart contract code for vulnerabilities, suggests gas optimizations, checks code quality, and even offers fix suggestions​
+GITHUB.COM
+. This helps developers secure and optimize their programs before deployment.
+Real-Time Analytics & Monitoring – Agents that track token prices and crypto sentiment (via Twitter API) live, and a monitoring service for on-chain Solana contract activity (state changes, transactions, performance)​
+GITHUB.COM
+​
+GITHUB.COM
+. Traders and analysts can get up-to-the-second insights.
+Collaborative Development – An optional web frontend (Next.js) provides an infinite canvas for visualizing contracts and enables multi-user real-time collaboration with live editing and annotation​
+GITHUB.COM
+​
+GITHUB.COM
+, so teams can work together seamlessly.
+Discord Bot Integration – A Discord bot bridges the gap between the platform and community. Developers can interact with the AI assistant or query analytics right from a Discord server​
+GITHUB.COM
+. For example, you could ask the bot to analyze a code snippet or get the latest SOL price sentiment in-chat.
+RESTful API Gateway – All functionality is exposed via a FastAPI-based REST API, making it easy to integrate Sand Framework into other applications or services​
+GITHUB.COM
+. The API provides endpoints for submitting contracts for analysis, fetching analytics, managing projects, etc., with auto-generated docs available at /api/docs when running the server​
+GITHUB.COM
+​
+GITHUB.COM
+.
+In summary, Sand Framework acts as a one-stop toolkit for Solana development and analytics – AI, security, analytics, and collaboration in one extensible system.
+Features
+AI-Powered Development Agent: Integrates with OpenAI GPT-4, Anthropic Claude, or local DeepSeek models to provide intelligent coding assistance​
+GITHUB.COM
+. The AI agent can answer Solana development questions, generate or review code, and help debug errors in real-time. This reduces the learning curve and speeds up development by serving as an expert co-pilot.Smart Contract Analysis Engine: Automates auditing of Solana programs:
+Security Scanner – Detects common vulnerabilities and risky patterns in smart contract code (using static analysis and AST pattern matching)​
+GITHUB.COM
+. It flags issues with severity levels and offers descriptions and remediation guidance.
+Gas Optimizer – Identifies inefficient code patterns and suggests optimizations to reduce transaction fees (compute units)​
+GITHUB.COM
+.
+Code Quality Checker – Enforces best practices and coding standards, checking for documentation completeness and maintainability issues​
+GITHUB.COM
+.
+Metrics & Reports – Gathers metrics like code complexity, contract size, and can produce comprehensive analysis reports​
+GITHUB.COM
+. (All these analyses can be run via the API or a CLI script.)
+Real-Time Analytics Agent: Connects to market and social data to provide live insights:
+Price Tracking: Monitors cryptocurrency prices (e.g. SOL and related tokens) in real-time, which can be used to alert or inform traders and developers of market movements.
+Sentiment Analysis: Ingests Twitter data (via the Twitter API using the provided TWITTER_BEARER_TOKEN) to gauge community sentiment​
+GITHUB.COM
+. It can analyze tweets for positive/negative sentiment or trending topics in the Solana ecosystem, giving an edge in understanding the community mood.
+On-Chain Monitoring: (Planned) Hooks into Solana RPC or indexers to watch deployed contracts. It can detect events like state changes, track transaction metrics, and provide performance analytics for your contracts in production​
+GITHUB.COM
+. This helps in reacting to issues or notable on-chain activities as they happen.
+Discord Bot: The included Discord bot (built with discord.py​
+GITHUB.COM
+) brings the platform's capabilities to your community chat:
+Developers can ask the bot to analyze code or provide help (the bot relays queries to the AI development agent).
+Community members can query live stats, e.g., “/price SOL” or “/sentiment SOL”, to get instant reports from the analytics agent.
+The bot can post alerts or updates – for example, if the monitoring agent detects a significant contract event or if sentiment on a token suddenly shifts, it could notify a Discord channel (configurable feature).
+This integration makes Sand Framework’s features accessible and engaging in a familiar interface, driving community collaboration. (Simply set your Discord bot token in the .env and run the discord_bot service to get started.)
+FastAPI REST API: A robust API layer (api_gateway service) exposes all core functions:
+Development Endpoints: e.g. POST /api/v1/dev/analyze to submit a contract for analysis, GET /api/v1/dev/projects to manage project data​
+GITHUB.COM
+.
+Analytics Endpoints: e.g. GET /api/v1/analytics for market/sentiment data, GET /api/v1/metrics for system metrics​
+GITHUB.COM
+​
+GITHUB.COM
+.
+WebSocket Support: (Planned) Real-time updates (e.g. streaming analysis results or live monitoring data) via secure WebSockets for front-end applications​
+GITHUB.COM
+.
+The API uses API Key authentication on all endpoints for security​
+GITHUB.COM
+. (Configure the X-API-Key header in requests after setting up your secret in the config.)
+Interactive API documentation is available at http://localhost:8000/api/docs (Swagger UI) when the server is running​
+GITHUB.COM
+, making it easy to explore and test endpoints.
+Scalable Architecture: Sand Framework is built to scale from local development to production:
+It follows a microservices-inspired design​
+GITHUB.COM
+ – the API Gateway handles HTTP requests, analysis workers run intensive tasks asynchronously, a monitoring service (planned) handles on-chain event streaming, and a frontend provides a UI​
+GITHUB.COM
+. These components communicate via message queues and shared databases.
+Celery task queue is used for offloading heavy analyses (security scans, etc.) to background worker processes​
+GITHUB.COM
+. This ensures the API remains responsive even under load.
+RabbitMQ serves as the message broker for Celery tasks​
+GITHUB.COM
+, enabling distributed processing and the ability to scale out workers horizontally.
+PostgreSQL is used as the primary database​
+GITHUB.COM
+ for storing project data, analysis results, user info, etc., ensuring persistence and reliability.
+Docker & Kubernetes: All services are containerized (see the included Dockerfile and docker-compose.yml). You can run the entire stack with Docker Compose for development, and Kubernetes manifests are provided for production deployment (under scripts/deploy/kubernetes/)​
+GITHUB.COM
+​
+GITHUB.COM
+. The Kubernetes setup covers separate deployments for API, worker, monitoring, etc., with ingress, autoscaling (HPA), and monitoring integration (Prometheus)​
+GITHUB.COM
+.
+Next.js Frontend (Optional): A React/Next.js front-end (in the frontend/ directory) is intended to offer a rich UI for the platform​
+GITHUB.COM
+. This would include the infinite canvas contract explorer and real-time dashboards. While not required to use core features, it adds visualization and collaborative editing capabilities for an enhanced developer experience​
+GITHUB.COM
+.
+The system is cloud-ready and can be scaled as needed – e.g., run multiple Celery workers or API instances behind a load balancer. It’s designed with horizontal scaling and fault tolerance in mind (stateless API, stateful data in DB, queued tasks)​
+GITHUB.COM
+.
+Tech Stack
+Sand Framework builds on a modern tech stack optimized for Web3 use cases:
+Language: Python 3.11 for backend services (high-performance async support) and TypeScript/JavaScript for the optional Next.js frontend.
+Backend Framework: FastAPI – for the RESTful API, providing high performance and automatic interactive docs.
+Async Task Queue: Celery with RabbitMQ – for running analysis jobs in the background and enabling distributed processing​
+GITHUB.COM
+.
+Database: PostgreSQL – robust relational database to store analysis results, user data, etc.​
+GITHUB.COM
+.
+Caching/Broker: RabbitMQ for messaging; (Optional: Redis can be used for caching or as an alternative broker if configured).
+Machine Learning/AI: OpenAI and Anthropic APIs for LLM access (configure your API keys), with the flexibility to use DeepSeek for open-source models​
+GITHUB.COM
+. This allows the AI agent to run either with paid API models or self-hosted models.
+Discord Bot: Discord.py library v2.3 is used to implement the Discord bot and command interface​
+GITHUB.COM
+.
+Web Frontend: Next.js (React) for building the web dashboard with an infinite canvas and real-time collaboration features.
+Deployment: Docker and Docker Compose for easy development and testing; Kubernetes manifests for scalable production deployment (CI/CD ready)​
+GITHUB.COM
+​
+GITHUB.COM
+. The project includes a GitHub Actions workflow for CI/CD (.github/workflows/ci.yml) to run tests and build images on pushes​
+GITHUB.COM
+​
+GITHUB.COM
+.
+Misc: TextBlob (NLP library) for simple sentiment analysis of tweets, and various Python libraries for Solana and web3 interactions as needed (to be extended as the project grows).
+Getting Started
+Follow these steps to set up Sand Framework for development or evaluation. You can run the platform using Docker (quickest method) or set it up manually for development.
+Prerequisites
+Docker & Docker Compose (for running the full stack easily).
+Git to clone the repository.
+(Optional for manual setup): Python 3.11+, Node.js 18+, PostgreSQL, RabbitMQ, and Redis if using the front-end or altering the broker. Ensure you have those installed and running if not using Docker​
+GITHUB.COM
+.
+Installation
+Clone the Repository:
+bash
+Copier
+git clone https://github.com/tuaregsand/sand_framework.git
+cd sand_framework
+Configure Environment Variables:Copy the example env file and edit it:
+bash
+Copier
+cp .env.example .env
+Open the .env file and fill in the required credentials and settings. Key variables include:
+LLM_PROVIDER (e.g. openai or anthropic),
+OPENAI_API_KEY / ANTHROPIC_API_KEY (your API keys, if using those providers)​
+GITHUB.COM
+,
+DATABASE_URL (PostgreSQL connection string)​
+GITHUB.COM
+,
+BROKER_URL (RabbitMQ connection URI)​
+GITHUB.COM
+,
+DISCORD_TOKEN (Discord bot token)​
+GITHUB.COM
+,
+TWITTER_BEARER_TOKEN (Twitter API token for analytics)​
+GITHUB.COM
+, and any others as needed. This configuration will be used by all services.
+(Option 1) Quick Start with Docker:Make sure Docker is running, then start all services via Docker Compose:
+bash
+Copier
+docker-compose up -d
+This will spin up the FastAPI API server, Celery worker(s), PostgreSQL, RabbitMQ, and the Discord bot container all at once​
+GITHUB.COM
+. It may take a minute on first run to pull images and initialize.Once up, you should be able to:
+Access the API documentation at http://localhost:8000/api/docs (Swagger UI)​
+GITHUB.COM
+.
+(If the front-end is included and configured in Docker, it would be on a specified port, e.g. localhost:3000.)
+The Discord bot will connect to your server (if invited with the correct token) and be ready for commands.
+Check the logs of each service with docker-compose logs -f [service_name] (e.g., api, worker, discord) to ensure all are running without errors.
+(Option 2) Manual Setup (Development Mode):If you prefer running locally without Docker (e.g., for active development of the codebase):
+Backend Setup: Create a Python virtual environment and install dependencies:
+bash
+Copier
+python3 -m venv venv
+source venv/bin/activate   # (Windows: .\venv\Scripts\activate)
+pip install -r requirements.txt
+Ensure PostgreSQL and RabbitMQ are running. You can use the provided docker-compose.yml to run just the dependencies:
+bash
+Copier
+docker-compose up -d rabbitmq postgres
+Initialize the database (run migrations or create tables if applicable). Sand Framework provides a DB init script:
+bash
+Copier
+python -m api_gateway.db init
+(This will set up the necessary tables in PostgreSQL; ensure your DATABASE_URL is correct.)
+Running Services: Start the FastAPI server and Celery worker in separate terminals:
+bash
+Copier
+# Terminal 1 - run API server
+uvicorn api_gateway.main:app --reload
+bash
+Copier
+# Terminal 2 - run background worker
+celery -A agents.tasks worker --loglevel=info
+These will launch the API on port 8000 and a Celery worker that consumes tasks from RabbitMQ​
+GITHUB.COM
+. You should see logs indicating both started successfully.
+Discord Bot: To run the Discord bot, you might need to execute its module or script. For example:
+bash
+Copier
+python -m discord_bot.bot
+(Refer to the repository's documentation for the exact command, as the bot might be implemented as a module. Ensure the DISCORD_TOKEN is set in your environment. The bot will connect and be ready to use if configured properly.)
+Frontend (Optional): If developing the web dashboard, navigate to frontend/ and install dependencies with Node.js:
+bash
+Copier
+cd frontend
+npm install
+npm run dev   # or next dev
+The Next.js app will start on localhost (usually port 3000) for development. You can then open the browser to use the visual interface.
+Verify Setup: Once everything is running, perform a quick health-check:
+API health endpoint: visit http://localhost:8000/health – it should return a JSON status "healthy"​
+GITHUB.COM
+.
+Try a test analysis: you can use the CLI tool to scan a contract file:
+bash
+Copier
+python scan_contract.py path/to/your_contract.sol
+This will run the security scanner on the given file and print any issues found to the console​
+GITHUB.COM
+. A successful run will either report vulnerabilities with details or say "No security issues found!"​
+GITHUB.COM
+.
+In Discord, use a command (for instance, if the bot is set up with a prefix like ! or slash commands) to ensure it responds. e.g. !sand health or !sand help (depending on implementation) to see if it's alive.
+You're now ready to use Sand Framework! 🎉
+Usage Guide
+Once the system is up, here are some ways to interact with Sand Framework and get the most out of its features:
+Web Dashboard (if running): Open the Next.js frontend in your browser to visualize your projects. You can create a new project, upload or write a Solana program, and watch as the analysis engine marks potential issues on an infinite canvas. The real-time collaboration means others can join the session and see updates live (great for team code reviews or hackathons).
+API Endpoints: You can use curl, Postman, or any HTTP client to call the API. Remember to include the X-API-Key header if you enabled API key auth​
+GITHUB.COM
+. For example:
+bash
+Copier
+curl -X POST http://localhost:8000/api/v1/dev/analyze \
+     -H "X-API-Key: <your-api-key>" \
+     -H "Content-Type: application/json" \
+     -d '{"code": "<your smart contract code here>"}'
+This will submit a contract (or code snippet) for analysis. The response will include any vulnerabilities or suggestions discovered. Other useful endpoints:
+GET /api/v1/analytics?token=SOL – fetch current price and sentiment analysis for SOL (or other token).
+GET /api/v1/metrics – retrieve system metrics or aggregated stats (e.g., total analyses run)​
+GITHUB.COM
+.
+POST /api/v1/dev/projects – create or update a project (group of contracts/files).
+Tip: Check out the interactive docs at /api/docs in your browser for a full list of endpoints and example inputs/outputs.
+Discord Bot Commands: Invite your bot to a Discord server (via the bot's client ID and generating an invite link with proper permissions). Once in, try commands like:
+!ask How do I create a PDA on Solana? – the bot will utilize the AI agent to answer a development question.
+!analyze <link to gist or code> – the bot fetches the code and runs the security scan, then replies with a summary of findings.
+!price SOL or !sentiment SOL – the bot returns the latest price and a sentiment breakdown (e.g., "Price: $24.50, Twitter sentiment: 🔺 Positive") from the analytics agent.
+The bot might also support slash commands (depending on implementation). Begin a slash command ("/") and look for Sand Framework commands in the menu.
+Using the bot, even non-developers in the community can query the system, making it a powerful tool for community engagement and support.
+Automated Alerts: You can configure the platform to push alerts. For instance, set up a Discord channel where the bot posts alerts if:
+A critical vulnerability is found in any analyzed contract.
+A monitored contract on Solana emits an event or a state change (e.g., a significant hack or exploit is detected).
+Market sentiment drops or spikes beyond a threshold (could indicate breaking news).
+This turns Sand Framework into a security and analytics watchdog for your projects.
+Project Structure
+The repository is organized for clarity and modularity​
+GITHUB.COM
+:
+bash
+Copier
+/sand_framework
+├── api_gateway/         # FastAPI application (API routes, db models, core logic)
+│   ├── routes/          # API route definitions (analytics, devagent, system, etc.)
+│   ├── db/              # Database initialization and models
+│   ├── core/            # Core configuration (settings, security utils)
+│   └── ... (other FastAPI app components)
+├── agents/              # AI and analysis agents logic
+│   ├── contract_analysis/   # Smart contract analysis module
+│   │   ├── security_scanner.py   # Vulnerability scanning logic
+│   │   ├── gas_optimizer.py      # Gas usage analysis logic
+│   │   ├── code_quality.py       # Code style/quality checks
+│   │   ├── metrics.py            # Code metrics calculations
+│   │   └── data/                 # JSON pattern files for vulnerabilities, etc.
+│   ├── dev_agent.py         # AI development assistant logic (LLM queries)
+│   ├── analytics_agent.py   # Market & sentiment analytics logic
+│   └── tasks.py             # Celery task definitions that tie agents to async jobs
+├── discord_bot/          # Discord bot implementation (commands and event handlers)
+├── frontend/             # (Optional) Next.js frontend app for the infinite canvas UI
+├── tests/                # Test suite (unit, integration, performance tests)&#8203;:contentReference[oaicite:60]{index=60}
+├── scripts/deploy/       # Deployment scripts and configs
+│   └── kubernetes/       # Kubernetes manifests for production deployment&#8203;:contentReference[oaicite:61]{index=61}
+├── docker-compose.yml    # Docker Compose setup for development/testing
+├── .env.example          # Template for environment variables
+├── requirements.txt      # Python dependencies
+└── README.md             # Documentation (you're reading a rewritten version!)
+Developers can navigate this structure to find the relevant pieces. For example, to modify how the security scanner works, you'd look under agents/contract_analysis/security_scanner.py. To add a new API endpoint, you'd create it under api_gateway/routes/. This modular design makes it easy to extend the framework (e.g., adding support for another blockchain or a new analysis module).
+Development
+Sand Framework welcomes contributions and is set up for an efficient developer workflow:
+Dev Environment: We recommend using the Docker setup or a virtualenv as described in Getting Started. All code changes should adhere to the style guidelines (PEP8 for Python, etc.). We use logging extensively; check the console output for logs from api_gateway or agents to debug issues. Logging levels can be adjusted in api_gateway/core/config.py (default is INFO)​
+GITHUB.COM
+.
+Hot Reload: When running with uvicorn --reload, the API will auto-reload on code changes. If you modify Celery tasks or agent logic, you’ll need to restart the Celery worker to pick up changes. The Next.js frontend in dev mode also hot-reloads on save.
+Testing: Write tests for any new feature or bug fix. The tests/ directory is structured into:
+unit/ for unit tests (e.g., testing the security scanner on known vulnerable code snippets)​
+GITHUB.COM
+,
+integration/ for end-to-end tests (e.g., running the full analysis pipeline on a sample contract)​
+GITHUB.COM
+,
+performance/ for load testing (using Locust)​
+GITHUB.COM
+.
+Run all tests with pytest​
+GITHUB.COM
+. Ensure they all pass before submitting a PR. For performance testing, you can use the Locust file provided to simulate concurrent usage​
+GITHUB.COM
+.
+Git Hooks: (If configured) We may include git pre-commit hooks or CI checks for linting and formatting. Please run flake8 and black on your code if those tools are listed in requirements-dev.txt. Our CI pipeline will also run these checks.
+Branching: For contributions, fork the repo and create a feature branch (e.g., feature/add-new-agent) off the main branch​
+GITHUB.COM
+. When ready, open a Pull Request. Ensure your PR description clearly states the purpose and any relevant issue numbers.
+Code of Conduct: Be mindful of the project’s code of conduct (see CONTRIBUTING.md) when interacting in issues or discussions. We aim to cultivate a positive, collaborative community.
+Testing
+Quality is a top priority. Sand Framework includes a comprehensive test suite:
+Unit Tests: Run pytest tests/unit to execute unit tests for individual components. For example, test_security.py contains tests for the security scanner to ensure it catches certain vulnerabilities and handles edge cases​
+GITHUB.COM
+.
+Integration Tests: Run pytest tests/integration for tests that spin up parts of the system and simulate user workflows (e.g., submitting a contract via the API and verifying the combined output of multiple agents)​
+GITHUB.COM
+.
+Manual Testing via CLI: You can manually test the contract scanner by running the scan_contract.py script on known vulnerable code to see the output (as described in Usage above).
+Performance Testing: For load testing, we provide a Locust configuration (tests/performance/locustfile.py). With the system running, you can start a Locust server to simulate many concurrent users hitting the API and workers​
+GITHUB.COM
+. This helps ensure the framework performs under stress and to tune the worker count or resources.
+Continuous Integration: Every push/PR triggers the CI workflow which runs all tests and other checks automatically​
+GITHUB.COM
+. PRs will not be merged until tests pass, to maintain stability on the main branch.
+Security
+We take security seriously in Sand Framework’s design and implementation:
+Authentication: All API endpoints are secured via an API Key header or OAuth (planned). By default, the FastAPI uses an X-API-Key header checked by verify_api_key dependency​
+GITHUB.COM
+​
+GITHUB.COM
+. You should change the default key (if any) to a strong secret in production. Discord bot commands should be restricted to authorized channels or users as appropriate.
+Encryption: If connected to remote databases or message brokers, use SSL connections. Credentials and API keys are loaded from environment variables – never commit secrets to the repo! For additional safety, consider integrating HashiCorp Vault or AWS Secrets Manager in production.
+Data Handling: The platform may process sensitive smart contract code. We do not log contract code or store it beyond what’s necessary for analysis. Results stored in the database can be encrypted at rest (enable PG encryption or use encrypted volumes).
+Regular Updates: We plan to regularly update dependency versions to pull in security patches. The requirements.txt pins versions known to work; update them carefully and test. We also recommend running vulnerability scanners (like pip-audit or GitHub Dependabot) on the project.
+Auditing: Key components such as the security scanner logic can be reviewed by security experts. We acknowledge that an AI/automation tool is supplementary and developers should still manually review critical code. Sand Framework is meant to assist, not replace, professional auditing.
+Permissions: When deploying to cloud, follow the principle of least privilege (e.g., restrict the Discord bot token scope, ensure the server running the framework has firewall rules for database, etc.). The provided Kubernetes configs include some best practices (non-root containers, network policies)​
+GITHUB.COM
+.
+By using Sand Framework, developers can improve security and catch issues early, but always remain vigilant and follow Solana security best practices in tandem.
+Roadmap
+Sand Framework is in active development. Planned and upcoming features include:
+Advanced AI Capabilities: Integration of code autocompletion and refactoring suggestions directly in the development agent (an "AI pair programmer"). We are exploring fine-tuning the AI on Solana-specific libraries to improve its context. Also, using the AI to auto-fix some vulnerabilities it finds (one-click fix proposals)​
+GITHUB.COM
+.
+Cross-Chain Support: Currently optimized for Solana, but we plan to extend support to other smart contract platforms (e.g., Ethereum/Solidity, Move, Sui). The analysis engine was built to be extensible – adding new pattern files and scanners for different languages is on the horizon​
+GITHUB.COM
+.
+Enhanced Analytics: Adding more data sources for sentiment (Reddit, Discord chatter) and price feeds. Possibly incorporate on-chain analytics (like tracking whale transactions on Solana) to alert traders.
+IDE Integration: Building plugins for popular IDEs (like VSCode) so developers can access Sand’s analysis and AI help within their coding environment​
+GITHUB.COM
+.
+Improved Frontend: The infinite canvas will gain more visualization tools – call graphs, state charts, and the ability to simulate transactions on a contract visually. We also plan on a dark mode (of course 😄) and UI theming.
+Community Packages: Encourage community-contributed analysis rules. For example, domain-specific patterns (DeFi protocols, NFT standards) could be added as plugins. A marketplace or repository of rule packs might emerge.
+Performance Optimizations: Continually improving the throughput of the analysis (e.g., optimizing AST parsing, adding caching of results for unchanged code) to handle larger contracts efficiently. Also, possibly leveraging WebAssembly or Rust for critical analysis components to speed them up (some Rust code is already included for low-level tasks).
+Check the GitHub Issues page for the latest feature requests and to contribute your own ideas!
+Contributing
+Contributions are welcome and encouraged! If you have an idea to improve Sand Framework or find a bug, please join in:
+Fork the repository and create a new branch for your feature or fix (git checkout -b feature/your-feature).
+Make your changes following the code style and including tests.
+Commit and push to your branch. Write clear commit messages.
+Open a Pull Request on GitHub, describing your changes and linking any relevant issues.
+Work with the maintainers on any feedback. We’ll review PRs and help with any adjustments needed.
+Please read our Contributing Guidelines for full details​
+GITHUB.COM
+. It covers the process, coding conventions, and our code of conduct. By contributing, you agree to follow our community standards (be respectful, constructive, and patient).Areas you can contribute to right now:
+Writing new analysis rules (if you’re a security researcher, contribute to vulnerability_patterns.json and improve the scanner).
+Improving documentation – if you find something unclear in this README or want to add a tutorial, do it!
+Feature development – pick an item from the Roadmap or open issues and help implement it.
+Testing – increase test coverage, or test Sand Framework on real-world contracts and report results.
+We appreciate every contribution, from a typo fix to a major feature. Join our Discord (coming soon) or follow us on Twitter (see below) to get involved with the community.
+License
+This project is open source under the MIT License​
+GITHUB.COM
+. You’re free to use, modify, and distribute it. See the LICENSE file for details.We chose MIT to encourage broad usage and contribution. If Sand Framework helps you in your project or if you incorporate it into your services, a shout-out or attribution is appreciated but not required.
+Acknowledgments
+Sand Framework builds upon the shoulders of giants in the blockchain and security community. We’d like to thank and acknowledge:
+Solana Foundation – for creating and maintaining the Solana blockchain and developer ecosystem that inspired this tool.
+OpenZeppelin – their security libraries and guidelines for smart contracts have informed many of our vulnerability patterns.
+Trail of Bits – the contributions of their audits and tools (like Slither for Ethereum) influenced our approach to automated smart contract analysis.
+DeepSeek AI – for open-sourcing powerful language models that we plan to integrate for on-premise AI assistance.
+The broader Solana developer community – your open source projects and questions have provided use cases and test scenarios that shaped Sand Framework’s features.
+Everyone who has provided feedback, bug reports, or contributions – you’re helping make Solana development safer and more efficient for all.
+(If your project inspired or directly aided our code and we haven’t listed it, please let us know so we can give credit.)
+Support & Contact
+Need help with Sand Framework or have questions? We’re here to assist:
+GitHub Issues: If you encounter a bug or have a feature request, please open an issue on the repository. We monitor issues closely and will respond as soon as possible.
+Email: You can reach the maintainers at support@sandframework.dev for any private inquiries or support needs.
+Community Chat: (Coming soon) Join our Discord server to ask questions, share feedback, or just chat with other Sand Framework users and developers.
+Twitter: Follow @0xtuareg on X (Twitter) for updates, announcements, and tips about Sand Framework​
+GITHUB.COM
+.
+We’re committed to making Sand Framework robust and developer-friendly. If you run into any trouble during setup or usage, don’t hesitate to reach out – we’re happy to help you get the most out of the platform.
+Happy Building! 🚢✨ With Sand Framework, we hope Solana developers can build faster and more securely, and Web3 communities can stay informed and engaged. We can’t wait to see what you build and secure with it. Cheers to a safer, smarter Solana ecosystem!
