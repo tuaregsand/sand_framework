@@ -1,5 +1,4 @@
 from typing import List, Optional
-import json
 from pydantic_settings import BaseSettings
 import os
 from functools import lru_cache
@@ -52,7 +51,7 @@ class Settings(BaseSettings):
     TESTING: Optional[bool] = False
     
     # Security
-    JWT_SECRET: str = os.environ.get("JWT_SECRET", "")  # Get from environment with empty default
+    JWT_SECRET: Optional[str] = None  # Make it optional initially
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     CORS_ORIGINS: List[str] = ["*"]
@@ -130,19 +129,21 @@ class Settings(BaseSettings):
         # Run debug function before anything else
         debug_env()
         
-        # Print environment info
-        env_vars = list(os.environ.keys())
-        logger.error(f"Available environment variables: {', '.join(env_vars)}")
-        logger.error(f"JWT_SECRET exists: {'JWT_SECRET' in os.environ}")
-        if 'JWT_SECRET' in os.environ:
-            logger.error(f"JWT_SECRET length: {len(os.environ['JWT_SECRET'])}")
+        # Log environment variables
+        env_vars = {k.strip(): v for k, v in os.environ.items()}
+        logger.error(f"Environment variables: {list(env_vars.keys())}")
         
-        # Call parent init
+        # Try to get JWT_SECRET with and without space
+        jwt_value = env_vars.get('JWT_SECRET')
+        if jwt_value:
+            kwargs['JWT_SECRET'] = jwt_value.strip()
+            logger.error("Found JWT_SECRET in environment")
+        
         super().__init__(**kwargs)
         
-        # Validate JWT_SECRET after init
+        # Now validate JWT_SECRET
         if not self.JWT_SECRET:
-            raise ValueError("JWT_SECRET is required and cannot be empty")
+            raise ValueError("JWT_SECRET environment variable is required but not set")
 
 @lru_cache()
 def get_settings() -> Settings:
